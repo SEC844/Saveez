@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Paramètres personnalisés
+  objectifBase    Float @default(400)  // Objectif mensuel de base (€)
+  fondsSecurite   Float @default(5000) // Palier "intouchable" (€)
+  epargneActuelle Float @default(0)    // Solde courant (€)
+
+  // Relations
+  epargneMensuelles EpargneMensuelle[]
+  imprévus          Imprevu[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Entrées mensuelles d'épargne
+// ─────────────────────────────────────────────
+
+model EpargneMensuelle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  annee   Int
+  mois    Int     // 1–12
+  montant Float   // Somme réellement mise de côté ce mois-ci (€)
+  note    String? // Note libre optionnelle
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, annee, mois])
+  @@map("epargne_mensuelles")
+}
+
+// ─────────────────────────────────────────────
+// Imprévus (dépenses exceptionnelles)
+// ─────────────────────────────────────────────
+
+model Imprevu {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nom                String  // Ex : "Machine à laver"
+  montantTotal       Float   // Montant total prélevé (€)
+  dureeRemboursement Int     // Durée de remboursement en mois
+  montantMensuel     Float   // = montantTotal / dureeRemboursement
+
+  moisDebut  Int // Mois (1–12) de début du remboursement
+  anneeDebut Int // Année de début du remboursement
+
+  // Suivi de progression
+  montantRembourse Float   @default(0)
+  estSolde         Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("imprévus")
+}

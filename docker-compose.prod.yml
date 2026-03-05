@@ -1,0 +1,55 @@
+# ============================================================
+#  Docker Compose — Production
+#  Utilise l'image pré-buildée depuis ghcr.io (via CI/CD)
+#  au lieu de builder localement.
+#
+#  Usage :
+#    1. Copiez .env.example → .env et remplissez les valeurs
+#    2. Remplacez VOTRE_GITHUB_USER/epargne-app par votre repo
+#    3. docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: epargne_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-epargne_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?The POSTGRES_PASSWORD env var is required}
+      POSTGRES_DB: ${POSTGRES_DB:-epargne_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Ne pas exposer en prod à moins d'en avoir besoin
+    # ports:
+    #   - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-epargne_user} -d ${POSTGRES_DB:-epargne_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    # Image buildée automatiquement par GitHub Actions (ghcr.io)
+    # Remplacez par votre repository GitHub
+    image: ghcr.io/VOTRE_GITHUB_USER/epargne-app:latest
+    container_name: epargne_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-epargne_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-epargne_db}?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "
+        ./node_modules/.bin/prisma migrate deploy &&
+        node server.js
+      "
+
+volumes:
+  postgres_data:
