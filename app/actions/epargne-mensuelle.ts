@@ -45,10 +45,22 @@ export async function upsertEpargneMensuelleAction(
   const imprévus = await prisma.imprevu.findMany({ where: { userId } });
   const totalImprévus = imprévus.reduce((s, i) => s + i.montantTotal, 0);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { epargneActuelle: Math.max(0, total - totalImprévus) },
-  });
+  const moisLabel = new Date(annee, mois - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { epargneActuelle: Math.max(0, total - totalImprévus) },
+    }),
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "add_epargne",
+        label: `Épargne saisie : ${moisLabel} (${montant.toLocaleString("fr-FR")} €)`,
+        montant,
+      },
+    }),
+  ]);
 
   revalidatePath("/");
   return { success: true };

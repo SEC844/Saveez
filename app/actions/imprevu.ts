@@ -35,7 +35,6 @@ export async function createImprevuAction(
   const anneeDebut = now.getFullYear();
   const montantMensuel = Math.round((montantTotal / duree) * 100) / 100;
 
-  // Prélève le montant de l'épargne actuelle
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const nouvelleEpargne = user.epargneActuelle - montantTotal;
 
@@ -55,9 +54,18 @@ export async function createImprevuAction(
       where: { id: userId },
       data: { epargneActuelle: nouvelleEpargne },
     }),
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "add_imprevu",
+        label: `Imprévu ajouté : ${nom} (${montantTotal.toLocaleString("fr-FR")} €, ${duree} mois)`,
+        montant: montantTotal,
+      },
+    }),
   ]);
 
   revalidatePath("/");
+  revalidatePath("/imprévus");
   return { success: true };
 }
 
@@ -83,14 +91,24 @@ export async function rembourserImprevuAction(
         estSolde,
       },
     }),
-    // Réintègre le remboursement dans l'épargne actuelle
     prisma.user.update({
       where: { id: userId },
       data: { epargneActuelle: { increment: imp.montantMensuel } },
     }),
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "rembourser",
+        label: estSolde
+          ? `Imprévu soldé : ${imp.nom} ✓`
+          : `Remboursement : ${imp.nom} (+${imp.montantMensuel.toLocaleString("fr-FR")} €)`,
+        montant: imp.montantMensuel,
+      },
+    }),
   ]);
 
   revalidatePath("/");
+  revalidatePath("/imprévus");
   return { success: true };
 }
 
@@ -104,17 +122,27 @@ export async function deleteImprevuAction(
   const imp = await prisma.imprevu.findUnique({ where: { id: imprevuId } });
   if (!imp || imp.userId !== userId) return { error: "Introuvable." };
 
-  // Réintègre la partie non remboursée dans l'épargne
+  // Réintègre la partie non remboursée dans l'épargne (l'argent revient)
   const resteARembourser = imp.montantTotal - imp.montantRembourse;
 
   await prisma.$transaction([
     prisma.imprevu.delete({ where: { id: imprevuId } }),
     prisma.user.update({
       where: { id: userId },
-      data: { epargneActuelle: { decrement: resteARembourser } },
+      // FIX: increment (remettre l'argent), pas decrement
+      data: { epargneActuelle: { increment: resteARembourser } },
+    }),
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "delete_imprevu",
+        label: `Imprévu supprimé : ${imp.nom} (+${resteARembourser.toLocaleString("fr-FR")} € restitués)`,
+        montant: resteARembourser,
+      },
     }),
   ]);
 
   revalidatePath("/");
+  revalidatePath("/imprévus");
   return { success: true };
 }

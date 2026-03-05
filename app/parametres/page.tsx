@@ -18,6 +18,7 @@ export default async function ParametresPage() {
       objectifBase: true,
       fondsSecurite: true,
       epargneActuelle: true,
+      revenuNet: true,
     },
   });
 
@@ -33,7 +34,7 @@ export default async function ParametresPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">Paramètres</h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Configurez votre profil et vos objectifs</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Configurez votre profil et vos préférences</p>
           </div>
         </div>
 
@@ -43,6 +44,7 @@ export default async function ParametresPage() {
             objectifBase: user.objectifBase,
             fondsSecurite: user.fondsSecurite,
             epargneActuelle: user.epargneActuelle,
+            revenuNet: user.revenuNet,
           }}
         />
       </div>

@@ -23,13 +23,16 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Paramètres personnalisés
-  objectifBase    Float @default(400)  // Objectif mensuel de base (€)
-  fondsSecurite   Float @default(5000) // Palier "intouchable" (€)
-  epargneActuelle Float @default(0)    // Solde courant (€)
+  objectifBase    Float  @default(400)  // Objectif de repli si aucun objectif temporel actif
+  fondsSecurite   Float  @default(5000) // Palier "intouchable" (€)
+  epargneActuelle Float  @default(0)    // Solde courant (€)
+  revenuNet       Float? // Revenu mensuel net optionnel (pour suggestions d'objectifs)
 
   // Relations
   epargneMensuelles EpargneMensuelle[]
   imprévus          Imprevu[]
+  objectifs         Objectif[]
+  actionLogs        ActionLog[]
 
   @@map("users")
 }
@@ -80,4 +83,45 @@ model Imprevu {
   updatedAt DateTime @updatedAt
 
   @@map("imprévus")
+}
+
+// ─────────────────────────────────────────────
+// Objectifs d'épargne temporels
+// ─────────────────────────────────────────────
+
+model Objectif {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  montant   Float   // Montant mensuel cible (€)
+  label     String? // Description optionnelle
+
+  dateDebut DateTime  // Début de la période
+  dateFin   DateTime? // Fin de la période — null = sans fin
+
+  preset String? // "1m" | "3m" | "6m" | "1y" | "custom"
+
+  createdAt DateTime @default(now())
+
+  @@map("objectifs")
+}
+
+// ─────────────────────────────────────────────
+// Journal des actions (historique)
+// ─────────────────────────────────────────────
+
+model ActionLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String  // "add_epargne" | "add_imprevu" | "delete_imprevu" | "rembourser" | "add_objectif" | "update_settings" | "reset"
+  label   String  // Description lisible
+  montant Float?  // Montant associé (si applicable)
+  meta    String? // JSON pour données supplémentaires
+
+  createdAt DateTime @default(now())
+
+  @@map("action_logs")
 }

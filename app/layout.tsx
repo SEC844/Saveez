@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Épargne – Votre tableau de bord financier",
-  description: "Suivez vos mises de côté, gérez vos imprévus et visualisez vos projections.",
+  title: "Saveez – Votre tableau de bord financier",
+  description: "Saveez : suivez vos mises de côté, gérez vos imprévus et visualisez vos projections.",
 };
 
 export default function RootLayout({

@@ -25,14 +25,15 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect("/login");
 
   const data = await getDashboardData(session.user.id);
-  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth } = data;
+  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth, objectifs } = data;
   const allImprévus = [...imprévusActifs, ...data.imprévusSoldés];
 
   const objectifDuMois = getObjectifDynamique(
     user.objectifBase,
     allImprévus,
     currentYear,
-    currentMonth
+    currentMonth,
+    objectifs
   );
 
   const entreeCourante = epargneMensuelles.find(
@@ -47,10 +48,11 @@ export default async function DashboardPage() {
     user.objectifBase,
     allImprévus,
     epargneMensuelles,
-    currentYear
+    currentYear,
+    objectifs
   );
 
-  const graphData = await getGraphData(session.user.id, user.objectifBase, allImprévus);
+  const graphData = await getGraphData(session.user.id, user.objectifBase, allImprévus, objectifs);
 
   const moisLabel = new Date(currentYear, currentMonth - 1).toLocaleDateString("fr-FR", {
     month: "long",

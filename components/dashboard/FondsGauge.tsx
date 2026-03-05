@@ -12,6 +12,8 @@ interface FondsGaugeProps {
 export default function FondsGauge({ epargneActuelle, fondsSecurite }: FondsGaugeProps) {
   const pct = Math.min(100, (epargneActuelle / fondsSecurite) * 100);
   const atteint = epargneActuelle >= fondsSecurite;
+  // Afficher au maximum fondsSecurite (ne pas montrer le dépassement)
+  const affichage = Math.min(epargneActuelle, fondsSecurite);
 
   return (
     <motion.div
@@ -26,7 +28,7 @@ export default function FondsGauge({ epargneActuelle, fondsSecurite }: FondsGaug
             Fonds de sécurité
           </p>
           <p className="mt-1 text-sm font-medium text-zinc-900 dark:text-white">
-            {epargneActuelle.toLocaleString("fr-FR")} € sur {fondsSecurite.toLocaleString("fr-FR")} €
+            {affichage.toLocaleString("fr-FR")} € sur {fondsSecurite.toLocaleString("fr-FR")} €
           </p>
         </div>
         <div className={cn(

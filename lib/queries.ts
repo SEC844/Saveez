@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import type { Imprevu, EpargneMensuelle, User } from "@prisma/client";
+import type { Imprevu, EpargneMensuelle, User, Objectif, ActionLog } from "@prisma/client";
 
 export type DashboardData = {
   user: User;
   epargneMensuelles: EpargneMensuelle[];
   imprévusActifs: Imprevu[];
   imprévusSoldés: Imprevu[];
+  objectifs: Objectif[];
   currentYear: number;
   currentMonth: number;
 };
@@ -19,7 +20,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
-  const [user, epargneMensuelles, allImprévus] = await Promise.all([
+  const [user, epargneMensuelles, allImprévus, objectifs] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.epargneMensuelle.findMany({
       where: { userId },
@@ -29,9 +30,12 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       where: { userId },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.objectif.findMany({
+      where: { userId },
+      orderBy: { dateDebut: "asc" },
+    }),
   ]);
 
-  // Session valide mais user supprimé (ex: DB réinitialisée) → signout propre
   if (!user) redirect("/login?error=session");
 
   return {
@@ -39,6 +43,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     epargneMensuelles,
     imprévusActifs: allImprévus.filter((i) => !i.estSolde),
     imprévusSoldés: allImprévus.filter((i) => i.estSolde),
+    objectifs,
     currentYear,
     currentMonth,
   };
@@ -50,7 +55,8 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 export async function getGraphData(
   userId: string,
   objectifBase: number,
-  imprévus: Imprevu[]
+  imprévus: Imprevu[],
+  objectifs: Objectif[] = []
 ) {
   const { getObjectifDynamique } = await import("@/lib/epargne");
 
@@ -71,9 +77,20 @@ export async function getGraphData(
       annee,
       mois,
       reel: entree?.montant ?? null,
-      objectif: getObjectifDynamique(objectifBase, imprévus, annee, mois),
+      objectif: getObjectifDynamique(objectifBase, imprévus, annee, mois, objectifs),
     });
   }
 
   return points;
+}
+
+/**
+ * Récupère l'historique des actions d'un utilisateur.
+ */
+export async function getActionLogs(userId: string, limit = 50): Promise<ActionLog[]> {
+  return prisma.actionLog.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
 }

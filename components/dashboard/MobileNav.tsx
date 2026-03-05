@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut } from "lucide-react";
+import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut, History, Target } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -13,6 +13,8 @@ const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
   { href: "/imprévus", icon: AlertTriangle, label: "Imprévus" },
   { href: "/projections", icon: TrendingUp, label: "Projections" },
+  { href: "/objectifs", icon: Target, label: "Objectifs" },
+  { href: "/historique", icon: History, label: "Historique" },
   { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
@@ -24,7 +26,7 @@ export default function MobileNav() {
     <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center text-sm">💰</div>
-        <span className="font-semibold text-sm text-zinc-900 dark:text-white">Épargne</span>
+        <span className="font-semibold text-sm text-zinc-900 dark:text-white">Saveez</span>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
@@ -38,7 +40,7 @@ export default function MobileNav() {
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
               <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-white flex items-center justify-center text-base">💰</div>
-              <span className="font-semibold text-zinc-900 dark:text-white">Épargne</span>
+              <span className="font-semibold text-zinc-900 dark:text-white">Saveez</span>
             </div>
             <nav className="px-3 py-4 space-y-0.5">
               {NAV.map(({ href, icon: Icon, label }) => {

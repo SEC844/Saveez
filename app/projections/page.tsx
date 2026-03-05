@@ -13,15 +13,16 @@ export default async function ProjectionsPage() {
   if (!session?.user?.id) redirect("/login");
 
   const dashboardData = await getDashboardData(session.user.id);
-  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth } = dashboardData;
+  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth, objectifs } = dashboardData;
 
-  const graphData = await getGraphData(session.user.id, user.objectifBase, imprévusActifs);
+  const graphData = await getGraphData(session.user.id, user.objectifBase, imprévusActifs, objectifs);
 
   const objectifMensuelDynamique = getObjectifDynamique(
     user.objectifBase,
     imprévusActifs,
     currentYear,
-    currentMonth
+    currentMonth,
+    objectifs
   );
 
   const projectionResult = getProjectionFinAnnee(
@@ -29,7 +30,8 @@ export default async function ProjectionsPage() {
     user.objectifBase,
     imprévusActifs,
     epargneMensuelles,
-    currentYear
+    currentYear,
+    objectifs
   );
 
   const moisRestants = 12 - currentMonth;

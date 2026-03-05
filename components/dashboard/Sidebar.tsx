@@ -9,6 +9,8 @@ import {
   Settings,
   TrendingUp,
   LogOut,
+  History,
+  Target,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { signOut } from "next-auth/react";
@@ -18,6 +20,8 @@ const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
   { href: "/imprévus", icon: AlertTriangle, label: "Imprévus" },
   { href: "/projections", icon: TrendingUp, label: "Projections" },
+  { href: "/objectifs", icon: Target, label: "Objectifs" },
+  { href: "/historique", icon: History, label: "Historique" },
   { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
@@ -32,7 +36,7 @@ export default function Sidebar() {
           💰
         </div>
         <span className="font-semibold text-zinc-900 dark:text-white tracking-tight">
-          Épargne
+          Saveez
         </span>
       </div>
 

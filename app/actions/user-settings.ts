@@ -24,6 +24,8 @@ export async function updateSettingsAction(
   const fondsSecurite = parseFloat(formData.get("fondsSecurite") as string);
   const epargneActuelle = parseFloat(formData.get("epargneActuelle") as string);
   const name = (formData.get("name") as string)?.trim() || null;
+  const revenuNetRaw = formData.get("revenuNet") as string;
+  const revenuNet = revenuNetRaw ? parseFloat(revenuNetRaw) : null;
 
   if (isNaN(objectifBase) || objectifBase < 0)
     return { error: "Objectif mensuel invalide." };
@@ -31,11 +33,60 @@ export async function updateSettingsAction(
     return { error: "Fonds de sécurité invalide." };
   if (isNaN(epargneActuelle) || epargneActuelle < 0)
     return { error: "Épargne actuelle invalide." };
+  if (revenuNet !== null && (isNaN(revenuNet) || revenuNet < 0))
+    return { error: "Revenu net invalide." };
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { objectifBase, fondsSecurite, epargneActuelle, name },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { objectifBase, fondsSecurite, epargneActuelle, name, revenuNet },
+    }),
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "update_settings",
+        label: "Paramètres mis à jour",
+      },
+    }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/parametres");
+  return { success: true };
+}
+
+// ─── Réinitialiser toutes les données utilisateur ───────────────────────────
+
+export async function resetUserDataAction(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const userId = await getAuthUserId();
+  const confirm = (formData.get("confirm") as string)?.trim();
+
+  if (confirm !== "RESET") {
+    return { error: "Veuillez taper RESET pour confirmer." };
+  }
+
+  // Supprime toutes les données liées à l'utilisateur (sans supprimer le compte)
+  await prisma.$transaction([
+    prisma.epargneMensuelle.deleteMany({ where: { userId } }),
+    prisma.imprevu.deleteMany({ where: { userId } }),
+    prisma.objectif.deleteMany({ where: { userId } }),
+    prisma.actionLog.deleteMany({ where: { userId } }),
+    prisma.user.update({
+      where: { id: userId },
+      data: { epargneActuelle: 0 },
+    }),
+    // Recréer un log de remise à zéro
+    prisma.actionLog.create({
+      data: {
+        userId,
+        type: "reset",
+        label: "Remise à zéro de toutes les données",
+      },
+    }),
+  ]);
 
   revalidatePath("/");
   return { success: true };
@@ -65,7 +116,8 @@ export async function whatIfSimulation(
     data.user.objectifBase,
     allImprévus,
     data.epargneMensuelles,
-    data.currentYear
+    data.currentYear,
+    data.objectifs
   );
 
   const avec = getProjectionFinAnnee(
@@ -73,11 +125,11 @@ export async function whatIfSimulation(
     data.user.objectifBase,
     allImprévus,
     data.epargneMensuelles,
-    data.currentYear
+    data.currentYear,
+    data.objectifs
   );
 
   const difference = sans.projection - avec.projection;
-  // Combien de mois à objectif normal pour rattraper
   const moisPourRattraper =
     data.user.objectifBase > 0
       ? Math.ceil(montantHypothetique / data.user.objectifBase)

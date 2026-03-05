@@ -62,25 +62,11 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
     objectif: isDark ? "#52525b" : "#d4d4d8",
   };
 
-  if (!mounted) {
-    return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-          ))}
-        </div>
-        <div className="h-72 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-        <div className="h-64 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-      </div>
-    );
-  }
-
   const now = new Date();
-  const currentMois = now.getMonth() + 1; // 1-indexed
+  const currentMois = now.getMonth() + 1;
   const currentAnnee = now.getFullYear();
 
-  // Build cumulative chart from graphData (already sorted oldest first by caller)
+  // ⚠️ useMemo MUST be before any conditional return (Rules of Hooks)
   const fullYearData = useMemo(() => {
     let cumR = epargneActuelle;
     let cumO = epargneActuelle;
@@ -105,6 +91,20 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
     reel: d.reel,
     objectif: d.objectif,
   }));
+
+  if (!mounted) {
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+          ))}
+        </div>
+        <div className="h-72 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+        <div className="h-64 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+      </div>
+    );
+  }
 
   const hasSurplus = annuelle.some((d) => d.reel !== null && d.objectif !== null && d.reel! > d.objectif);
   const hasDeficit = annuelle.some((d) => d.reel !== null && d.objectif !== null && d.reel! < d.objectif);

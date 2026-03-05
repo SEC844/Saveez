@@ -1,4 +1,37 @@
-import type { EpargneMensuelle, Imprevu } from "@prisma/client";
+import type { EpargneMensuelle, Imprevu, Objectif } from "@prisma/client";
+
+/**
+ * Trouve l'objectif actif pour une date donnée parmi les objectifs temporels.
+ * Si aucun objectif ne couvre cette date, retourne null.
+ */
+export function getObjectifActifPourDate(
+  objectifs: Objectif[],
+  date: Date
+): Objectif | null {
+  const t = date.getTime();
+  return (
+    objectifs.find((o) => {
+      const debut = new Date(o.dateDebut).getTime();
+      const fin = o.dateFin ? new Date(o.dateFin).getTime() : Infinity;
+      return t >= debut && t <= fin;
+    }) ?? null
+  );
+}
+
+/**
+ * Retourne le montant de base de l'objectif pour un mois/année donné.
+ * Priorité : objectif temporel actif → sinon objectifBase de l'utilisateur.
+ */
+export function getObjectifBaseForMonth(
+  objectifBase: number,
+  objectifs: Objectif[],
+  annee: number,
+  mois: number
+): number {
+  const date = new Date(annee, mois - 1, 15); // milieu du mois
+  const actif = getObjectifActifPourDate(objectifs, date);
+  return actif?.montant ?? objectifBase;
+}
 
 /**
  * Calcule le montant de remboursement actif des imprévus pour un mois/année donnés.
@@ -12,9 +45,7 @@ export function getRemboursementActif(
   return imprévus
     .filter((imp) => {
       if (imp.estSolde) return false;
-      // Date de début
       const debut = imp.anneeDebut * 12 + imp.moisDebut;
-      // Date de fin (incluse)
       const fin = debut + imp.dureeRemboursement - 1;
       const actuel = annee * 12 + mois;
       return actuel >= debut && actuel <= fin;
@@ -24,15 +55,17 @@ export function getRemboursementActif(
 
 /**
  * Retourne l'objectif mensuel dynamique pour un mois/année donnés.
- * objectifDynamique = objectifBase + somme des remboursements actifs
+ * objectifDynamique = objectifBase (ou objectif temporel) + remboursements actifs
  */
 export function getObjectifDynamique(
   objectifBase: number,
   imprévus: Imprevu[],
   annee: number,
-  mois: number
+  mois: number,
+  objectifs: Objectif[] = []
 ): number {
-  return objectifBase + getRemboursementActif(imprévus, annee, mois);
+  const base = getObjectifBaseForMonth(objectifBase, objectifs, annee, mois);
+  return base + getRemboursementActif(imprévus, annee, mois);
 }
 
 /**
@@ -45,15 +78,14 @@ export function getEcart(montantMis: number, objectif: number): number {
 
 /**
  * Projette l'épargne totale à fin décembre de l'année courante.
- * Prend en compte les mois déjà saisis et projette les mois restants
- * en supposant que l'utilisateur va atteindre son objectif dynamique chaque mois.
  */
 export function getProjectionFinAnnee(
   epargneActuelle: number,
   objectifBase: number,
   imprévus: Imprevu[],
   epargneMensuelles: EpargneMensuelle[],
-  annee: number
+  annee: number,
+  objectifs: Objectif[] = []
 ): {
   projection: number;
   totalEpargnéCetteAnnee: number;
@@ -61,28 +93,25 @@ export function getProjectionFinAnnee(
   moisDeficit: number;
 } {
   const maintenant = new Date();
-  const moisActuel = maintenant.getMonth() + 1; // 1-12
+  const moisActuel = maintenant.getMonth() + 1;
 
   let totalCetteAnnee = 0;
   let moisBonis = 0;
   let moisDeficit = 0;
 
   for (let mois = 1; mois <= 12; mois++) {
-    const objectif = getObjectifDynamique(objectifBase, imprévus, annee, mois);
+    const objectif = getObjectifDynamique(objectifBase, imprévus, annee, mois, objectifs);
     const entree = epargneMensuelles.find(
       (e) => e.annee === annee && e.mois === mois
     );
 
     if (entree) {
-      // Mois déjà saisi
       totalCetteAnnee += entree.montant;
       if (entree.montant >= objectif) moisBonis++;
       else moisDeficit++;
     } else if (mois > moisActuel) {
-      // Mois futurs : on projette avec l'objectif dynamique
       totalCetteAnnee += objectif;
     }
-    // Mois passés non saisis : on ne projette pas (on ne sait pas)
   }
 
   return {
@@ -99,4 +128,14 @@ export function getProjectionFinAnnee(
 export function getProgressionImprevu(imp: Imprevu): number {
   if (imp.montantTotal === 0) return 100;
   return Math.min(100, (imp.montantRembourse / imp.montantTotal) * 100);
+}
+
+/**
+ * Suggère des montants d'objectif en % du revenu net.
+ */
+export function getSuggestionsObjectif(revenuNet: number): { pct: number; montant: number }[] {
+  return [15, 20, 30].map((pct) => ({
+    pct,
+    montant: Math.round(revenuNet * (pct / 100)),
+  }));
 }
