@@ -11,7 +11,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
-  { href: "/imprévus", icon: AlertTriangle, label: "Imprévus" },
+  { href: "/imprevus", icon: AlertTriangle, label: "Imprévus" },
   { href: "/projections", icon: TrendingUp, label: "Projections" },
   { href: "/objectifs", icon: Target, label: "Objectifs" },
   { href: "/historique", icon: History, label: "Historique" },

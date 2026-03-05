@@ -27,27 +27,27 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Profil</h2>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">PrÃ©nom</label>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Prénom</label>
             <input
               name="name"
               type="text"
               defaultValue={defaultValues.name ?? ""}
-              placeholder="Votre prÃ©nom"
+              placeholder="Votre prénom"
               className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all"
             />
           </div>
         </div>
 
-        {/* Ã‰pargne */}
+        {/* Épargne */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Ã‰pargne</h2>
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Épargne</h2>
 
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-              Objectif mensuel de repli (â‚¬)
+              Objectif mensuel de repli (€)
             </label>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-1.5">
-              UtilisÃ© quand aucun objectif temporel n&apos;est dÃ©fini pour le mois
+              Utilisé quand aucun objectif temporel n&apos;est défini pour le mois
             </p>
             <input
               name="objectifBase"
@@ -61,10 +61,10 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
 
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-              Fonds de sÃ©curitÃ© (â‚¬)
+              Fonds de sécurité (€)
             </label>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-1.5">
-              Palier &quot;intouchable&quot; Ã  atteindre en prioritÃ©
+              Palier &quot;intouchable&quot; à atteindre en priorité
             </p>
             <input
               name="fondsSecurite"
@@ -78,10 +78,10 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
 
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-              Ã‰pargne actuelle (â‚¬)
+              Épargne actuelle (€)
             </label>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-1.5">
-              Solde rÃ©el de votre compte Ã©pargne aujourd&apos;hui
+              Solde réel de votre compte épargne aujourd&apos;hui
             </p>
             <input
               name="epargneActuelle"
@@ -98,11 +98,11 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Revenus</h2>
           <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-4">
-            Optionnel â€” permet des suggestions d&apos;objectifs Ã  15 %, 20 % et 30 % lors de la crÃ©ation d&apos;un objectif
+            Optionnel — permet des suggestions d&apos;objectifs à 15 %, 20 % et 30 % lors de la création d&apos;un objectif
           </p>
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Revenu mensuel net (â‚¬)
+              Revenu mensuel net (€)
             </label>
             <input
               name="revenuNet"
@@ -124,7 +124,7 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
           {state?.success && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="text-sm text-emerald-500 flex items-center gap-1.5 px-1">
-              <CheckCircle size={14} /> ParamÃ¨tres enregistrÃ©s
+              <CheckCircle size={14} /> Paramètres enregistrés
             </motion.p>
           )}
         </AnimatePresence>
@@ -140,15 +140,15 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
         </motion.button>
       </form>
 
-      {/* Zone de danger â€” Reset */}
+      {/* Zone de danger — Reset */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-red-200 dark:border-red-900/40 p-6">
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle size={14} className="text-red-500" />
           <h2 className="text-sm font-semibold text-red-600 dark:text-red-400">Zone de danger</h2>
         </div>
         <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-4">
-          Cette action supprime dÃ©finitivement toutes vos entrÃ©es d&apos;Ã©pargne, imprÃ©vus, objectifs et historique.
-          Votre compte est conservÃ©. L&apos;opÃ©ration est <strong>irrÃ©versible</strong>.
+          Cette action supprime définitivement toutes vos entrées d&apos;épargne, imprévus, objectifs et historique.
+          Votre compte est conservé. L&apos;opération est <strong>irréversible</strong>.
         </p>
 
         {!showReset ? (
@@ -157,7 +157,7 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
             className="inline-flex items-center gap-2 px-4 h-9 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
           >
             <Trash2 size={13} />
-            RÃ©initialiser toutes mes donnÃ©es
+            Réinitialiser toutes mes données
           </button>
         ) : (
           <form action={resetAction} className="space-y-3">
@@ -180,7 +180,7 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
               )}
               {resetState?.success && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="text-xs text-emerald-500">DonnÃ©es rÃ©initialisÃ©es âœ“</motion.p>
+                  className="text-xs text-emerald-500">Données réinitialisées ✓</motion.p>
               )}
             </AnimatePresence>
             <div className="flex gap-2">
@@ -190,7 +190,7 @@ export default function SettingsForm({ defaultValues }: SettingsFormProps) {
                 className="inline-flex items-center gap-2 px-4 h-9 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
                 {isResetPending ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                Confirmer la rÃ©initialisation
+                Confirmer la réinitialisation
               </button>
               <button
                 type="button"

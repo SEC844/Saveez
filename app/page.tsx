@@ -72,7 +72,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <AddEpargneModal />
           <AddImprevuModal objectifBase={user.objectifBase} />
-          <WhatIfModal />
+          <WhatIfModal epargneActuelle={user.epargneActuelle} />
         </div>
       </div>
 

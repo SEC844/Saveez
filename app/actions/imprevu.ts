@@ -36,6 +36,13 @@ export async function createImprevuAction(
   const montantMensuel = Math.round((montantTotal / duree) * 100) / 100;
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+
+  if (montantTotal > user.epargneActuelle) {
+    return {
+      error: `Solde insuffisant : vous avez ${user.epargneActuelle.toLocaleString("fr-FR")} € disponibles.`,
+    };
+  }
+
   const nouvelleEpargne = user.epargneActuelle - montantTotal;
 
   await prisma.$transaction([
@@ -65,7 +72,7 @@ export async function createImprevuAction(
   ]);
 
   revalidatePath("/");
-  revalidatePath("/imprévus");
+  revalidatePath("/imprevus");
   return { success: true };
 }
 
@@ -108,7 +115,7 @@ export async function rembourserImprevuAction(
   ]);
 
   revalidatePath("/");
-  revalidatePath("/imprévus");
+  revalidatePath("/imprevus");
   return { success: true };
 }
 
@@ -143,6 +150,6 @@ export async function deleteImprevuAction(
   ]);
 
   revalidatePath("/");
-  revalidatePath("/imprévus");
+  revalidatePath("/imprevus");
   return { success: true };
 }
