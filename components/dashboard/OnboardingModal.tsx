@@ -233,10 +233,10 @@ export default function OnboardingModal({ userName }: OnboardingModalProps) {
                                     <div
                                         key={i}
                                         className={`rounded-full transition-all ${i === step
-                                                ? "w-4 h-1.5 bg-zinc-900 dark:bg-white"
-                                                : i < step
-                                                    ? "w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600"
-                                                    : "w-1.5 h-1.5 bg-zinc-200 dark:bg-zinc-700"
+                                            ? "w-4 h-1.5 bg-zinc-900 dark:bg-white"
+                                            : i < step
+                                                ? "w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600"
+                                                : "w-1.5 h-1.5 bg-zinc-200 dark:bg-zinc-700"
                                             }`}
                                     />
                                 ))}

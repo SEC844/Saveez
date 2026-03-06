@@ -75,30 +75,30 @@ export default function ImprevuProgressCard({ imprevu, delay = 0, onDeleted }: I
           </button>
         </div>
 
-      {/* Progress bar */}
-      <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-2">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.9, delay: delay + 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className={cn(
-            "h-full rounded-full",
-            pct >= 100 ? "bg-emerald-500" : "bg-zinc-900 dark:bg-white"
-          )}
-        />
-      </div>
+        {/* Progress bar */}
+        <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-2">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.9, delay: delay + 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className={cn(
+              "h-full rounded-full",
+              pct >= 100 ? "bg-emerald-500" : "bg-zinc-900 dark:bg-white"
+            )}
+          />
+        </div>
 
-      <div className="flex items-center justify-between text-xs">
-        <p className="text-zinc-400 dark:text-zinc-500">
-          {imprevu.montantRembourse.toLocaleString("fr-FR")} € remboursé
-        </p>
-        <p className={cn(
-          "font-medium",
-          pct >= 100 ? "text-emerald-500" : "text-zinc-500 dark:text-zinc-400"
-        )}>
-          {pct >= 100 ? "100 %" : `${pct.toFixed(0)} % · ${moisRestants}m restants`}
-        </p>
-      </div>
+        <div className="flex items-center justify-between text-xs">
+          <p className="text-zinc-400 dark:text-zinc-500">
+            {imprevu.montantRembourse.toLocaleString("fr-FR")} € remboursé
+          </p>
+          <p className={cn(
+            "font-medium",
+            pct >= 100 ? "text-emerald-500" : "text-zinc-500 dark:text-zinc-400"
+          )}>
+            {pct >= 100 ? "100 %" : `${pct.toFixed(0)} % · ${moisRestants}m restants`}
+          </p>
+        </div>
       </motion.div>
     </>
   );
