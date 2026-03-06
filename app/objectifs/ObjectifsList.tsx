@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import type { Objectif } from "@prisma/client";
 import { deleteObjectifAction } from "@/app/actions/objectif";
-import { Trash2, CalendarClock, CheckCircle2, Clock } from "lucide-react";
+import { Trash2, CalendarClock, CheckCircle2, Clock, Target, Sun, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface ObjectifsListProps {
   objectifs: Objectif[];
@@ -29,14 +30,21 @@ function getStatus(objectif: Objectif): "active" | "future" | "past" {
   return "active";
 }
 
+function getCategorieLabel(cat: string | null) {
+  if (cat === "vacances") return { label: "Vacances", icon: Sun, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" };
+  if (cat === "autre") return { label: "Autre", icon: Layers, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" };
+  return { label: "Standard", icon: Target, color: "text-zinc-500 bg-zinc-100 dark:bg-zinc-800" };
+}
+
 function ObjectifCard({ objectif, delay }: { objectif: Objectif; delay: number }) {
   const [isPending, startTransition] = useTransition();
   const [deleted, setDeleted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const status = getStatus(objectif);
+  const { label: catLabel, icon: CatIcon, color: catColor } = getCategorieLabel(objectif.categorie);
 
   function handleDelete() {
-    if (!confirm(`Supprimer cet objectif (${objectif.montant.toLocaleString("fr-FR")} €/mois) ?`)) return;
     setDeleted(true);
     startTransition(async () => {
       await deleteObjectifAction(objectif.id);
@@ -46,63 +54,83 @@ function ObjectifCard({ objectif, delay }: { objectif: Objectif; delay: number }
   if (deleted) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35 }}
-      className={cn(
-        "bg-white dark:bg-zinc-900 rounded-2xl border p-5",
-        status === "active"
-          ? "border-zinc-900 dark:border-white shadow-sm"
-          : "border-zinc-100 dark:border-zinc-800"
-      )}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {status === "active" && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
-              <CheckCircle2 size={12} />
-              Actif
-            </span>
-          )}
-          {status === "future" && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-400">
-              <Clock size={12} />
-              À venir
-            </span>
-          )}
-          {status === "past" && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400">
-              <CalendarClock size={12} />
-              Terminé
-            </span>
-          )}
-        </div>
-        <button
-          onClick={handleDelete}
-          disabled={isPending}
-          className="p-1.5 rounded-lg text-zinc-300 dark:text-zinc-700 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+    <>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Supprimer cet objectif ?"
+        description={`${objectif.montant.toLocaleString("fr-FR")} €/mois${objectif.label ? ` · ${objectif.label}` : ""}. Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={isPending}
+        onConfirm={handleDelete}
+      />
 
-      <p className="text-2xl font-semibold text-zinc-900 dark:text-white mb-0.5">
-        {objectif.montant.toLocaleString("fr-FR")} €<span className="text-sm font-normal text-zinc-400">/mois</span>
-      </p>
-      {objectif.label && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{objectif.label}</p>
-      )}
-      <p className="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
-        <CalendarClock size={11} />
-        {formatDateRange(objectif.dateDebut, objectif.dateFin)}
-      </p>
-      {objectif.preset && objectif.preset !== "custom" && (
-        <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
-          {objectif.preset === "1m" ? "1 mois" : objectif.preset === "3m" ? "3 mois" : objectif.preset === "6m" ? "6 mois" : "1 an"}
-        </span>
-      )}
-    </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.35 }}
+        className={cn(
+          "bg-white dark:bg-zinc-900 rounded-2xl border p-5",
+          status === "active"
+            ? "border-zinc-900 dark:border-white shadow-sm"
+            : "border-zinc-100 dark:border-zinc-800"
+        )}
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Type badge */}
+            <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", catColor)}>
+              <CatIcon size={10} />
+              {catLabel}
+            </span>
+
+            {/* Statut */}
+            {status === "active" && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
+                <CheckCircle2 size={12} />
+                Actif
+              </span>
+            )}
+            {status === "future" && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-400">
+                <Clock size={12} />
+                À venir
+              </span>
+            )}
+            {status === "past" && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400">
+                <CalendarClock size={12} />
+                Terminé
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setConfirmOpen(true)}
+            disabled={isPending}
+            className="p-1.5 rounded-lg text-zinc-300 dark:text-zinc-700 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+
+        <p className="text-2xl font-semibold text-zinc-900 dark:text-white mb-0.5">
+          {objectif.montant.toLocaleString("fr-FR")} €<span className="text-sm font-normal text-zinc-400">/mois</span>
+        </p>
+        {objectif.label && (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{objectif.label}</p>
+        )}
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+          <CalendarClock size={11} />
+          {formatDateRange(objectif.dateDebut, objectif.dateFin)}
+        </p>
+        {objectif.preset && objectif.preset !== "custom" && (
+          <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+            {objectif.preset === "1m" ? "1 mois" : objectif.preset === "3m" ? "3 mois" : objectif.preset === "6m" ? "6 mois" : "1 an"}
+          </span>
+        )}
+      </motion.div>
+    </>
   );
 }
 

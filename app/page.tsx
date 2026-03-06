@@ -67,7 +67,8 @@ export default async function DashboardPage() {
     allImprévus,
     epargneMensuelles,
     currentYear,
-    objectifs
+    objectifs,
+    currentMonth
   );
 
   const graphData = await getGraphData(session.user.id, user.objectifBase, allImprévus, objectifs);
@@ -213,7 +214,7 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {epargneMensuelles.slice(0, 6).map((e, i) => {
-                  const obj = getObjectifDynamique(user.objectifBase, allImprévus, e.annee, e.mois);
+                  const obj = getObjectifDynamique(user.objectifBase, allImprévus, e.annee, e.mois, objectifs);
                   const diff = getEcart(e.montant, obj);
                   return (
                     <tr key={e.id} className={i < 5 ? "border-b border-zinc-50 dark:border-zinc-800/50" : ""}>

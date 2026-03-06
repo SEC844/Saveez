@@ -82,7 +82,8 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
   }, [force]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (state?.success) {
+    if (!state) return;
+    if (state.success) {
       setOpen(false);
       setMontant("");
       setPreset("3m");
@@ -90,10 +91,10 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
       setCompteId("");
       setForce(false);
     }
-    if (!state?.pendingConfirm) {
+    if (!state.pendingConfirm) {
       setForce(false);
     }
-  }, [state?.success, state?.pendingConfirm]);
+  }, [state]);
 
   const suggestions = revenuNet ? getSuggestionsObjectif(revenuNet) : [];
   const comptesActifs = comptes.filter((c) => c.actif);
