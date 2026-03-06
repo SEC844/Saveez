@@ -6,7 +6,8 @@ import { prisma } from "@/lib/db";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import SettingsForm from "./SettingsForm";
 import CompteSettings from "./CompteSettings";
-import { Settings } from "lucide-react";
+import DangerZoneCard from "./DangerZoneCard";
+import { Settings, Wallet } from "lucide-react";
 
 export default async function ParametresPage() {
   const session = await auth();
@@ -45,11 +46,6 @@ export default async function ParametresPage() {
           </div>
         </div>
 
-        <CompteSettings comptes={comptes} />
-
-        {/* Séparateur */}
-        <div className="mt-8 mb-6 border-t border-zinc-100 dark:border-zinc-800" />
-
         <SettingsForm
           defaultValues={{
             name: user.name,
@@ -59,6 +55,21 @@ export default async function ParametresPage() {
             revenuNet: user.revenuNet,
           }}
         />
+
+        {/* Séparateur */}
+        <div className="mt-8 mb-6 border-t border-zinc-100 dark:border-zinc-800" />
+
+        {/* Comptes spéciaux */}
+        <div className="flex items-center gap-2 mb-4">
+          <Wallet size={14} className="text-zinc-400" />
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Comptes spéciaux</h2>
+        </div>
+        <CompteSettings comptes={comptes} />
+
+        {/* Zone de danger */}
+        <div className="mt-8">
+          <DangerZoneCard />
+        </div>
       </div>
     </DashboardShell>
   );

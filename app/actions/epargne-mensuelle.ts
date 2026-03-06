@@ -32,10 +32,15 @@ export async function upsertEpargneMensuelleAction(
   if (mois < 1 || mois > 12) return { error: "Mois invalide." };
 
   // ── Répartition par compte ────────────────────────────────────────────────
-  // Lire les champs de répartition depuis le formulaire
   const repartitionRaw: Record<string, number> = {};
   const standardRaw = formData.get("repartition_standard");
   if (standardRaw !== null) repartitionRaw["standard"] = parseFloat(standardRaw as string) || 0;
+
+  // Champ imprévus global
+  const imprevusRaw = formData.get("repartition_imprevus");
+  if (imprevusRaw !== null && imprevusRaw !== "") {
+    repartitionRaw["imprevus"] = parseFloat(imprevusRaw as string) || 0;
+  }
 
   // Comptes actifs de l'utilisateur
   const comptes = await prisma.compte.findMany({ where: { userId, actif: true } });
@@ -62,28 +67,29 @@ export async function upsertEpargneMensuelleAction(
   });
 
   // ── Recalcul du montantRembourse sur les imprévus ─────────────────────────
+  // La source de vérité est maintenant la somme de repartition.imprevus
+  // enregistrée sur chaque mois, distribuée en FIFO sur les imprévus actifs.
   const [toutes, imprévus] = await Promise.all([
     prisma.epargneMensuelle.findMany({ where: { userId } }),
-    prisma.imprevu.findMany({ where: { userId } }),
+    prisma.imprevu.findMany({ where: { userId }, orderBy: [{ anneeDebut: "asc" }, { moisDebut: "asc" }] }),
   ]);
 
+  // Calcul du total global alloué aux imprévus sur tous les mois enregistrés
+  const totalAlloueImprévus = toutes.reduce((sum, e) => {
+    const rep = e.repartition as Record<string, number> | null;
+    return sum + (rep?.imprevus ?? 0);
+  }, 0);
+
+  // Distribution FIFO : on remplit chaque imprévus dans l'ordre
+  let restant = totalAlloueImprévus;
   for (const imp of imprévus) {
-    if (imp.estSolde) continue;
-    const debut = imp.anneeDebut * 12 + imp.moisDebut;
-    const fin = debut + imp.dureeRemboursement - 1;
-
-    const moisPayes = toutes.filter((e) => {
-      const m = e.annee * 12 + e.mois;
-      return m >= debut && m <= fin;
-    }).length;
-
-    const rembourse = Math.min(imp.montantTotal, imp.montantMensuel * moisPayes);
+    const rembourse = Math.min(imp.montantTotal, restant);
     const estSolde = rembourse >= imp.montantTotal;
-
     await prisma.imprevu.update({
       where: { id: imp.id },
-      data: { montantRembourse: rembourse, estSolde },
+      data: { montantRembourse: Math.round(rembourse * 100) / 100, estSolde },
     });
+    restant = Math.max(0, restant - rembourse);
   }
 
   // ── Mise à jour de l'épargne actuelle par delta ──────────────────────────
@@ -97,6 +103,9 @@ export async function upsertEpargneMensuelleAction(
   let actionLabel = `Épargne saisie : ${moisLabel} (${montant.toLocaleString("fr-FR")} €)`;
   if (hasRepartition) {
     const parts: string[] = [];
+    if (repartitionRaw["imprevus"] !== undefined && repartitionRaw["imprevus"] > 0) {
+      parts.push(`Imprévus : ${repartitionRaw["imprevus"].toLocaleString("fr-FR")} €`);
+    }
     if (repartitionRaw["standard"] !== undefined) {
       parts.push(`Standard : ${repartitionRaw["standard"].toLocaleString("fr-FR")} €`);
     }

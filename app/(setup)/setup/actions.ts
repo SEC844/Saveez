@@ -12,12 +12,6 @@ export async function setupAction(
   _prevState: SetupState,
   formData: FormData
 ): Promise<SetupState> {
-  // Refuse if any user already exists (prevent account takeover)
-  const count = await prisma.user.count();
-  if (count > 0) {
-    return { error: "Un compte existe déjà. Connectez-vous." };
-  }
-
   const name = (formData.get("name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
