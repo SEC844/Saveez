@@ -34,11 +34,11 @@ cp .env.example .env
 
 Éditer `.env` et remplir :
 
-| Variable | Description |
-|---|---|
-| `POSTGRES_PASSWORD` | Mot de passe fort pour PostgreSQL |
-| `NEXTAUTH_SECRET` | Clé secrète aléatoire (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | `http://localhost:3000` en local |
+| Variable            | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `POSTGRES_PASSWORD` | Mot de passe fort pour PostgreSQL                 |
+| `NEXTAUTH_SECRET`   | Clé secrète aléatoire (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL`      | `http://localhost:3000` en local                  |
 
 ### 3. Lancer avec Docker Compose
 

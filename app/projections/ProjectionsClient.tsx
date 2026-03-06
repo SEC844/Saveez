@@ -15,6 +15,10 @@ interface GraphPoint {
   mois: number;
   reel: number | null;
   objectif: number;
+  objectifStandard: number;
+  objectifVacances: number;
+  objectifAutre: number;
+  remboursements: number;
 }
 
 interface Props {
@@ -37,14 +41,28 @@ function formatEuro(v: number) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
+  const labels: Record<string, string> = {
+    reel: "Réel",
+    objectifStandard: "Standard",
+    objectifVacances: "Vacances",
+    objectifAutre: "Autre",
+    remboursements: "Remboursements",
+    cumReel: "Réel / Projeté",
+    cumObjectif: "Objectif",
+  };
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-700 rounded-xl px-3 py-2 shadow-md text-xs">
       <p className="font-medium text-zinc-700 dark:text-zinc-300 mb-1">{label}</p>
-      {payload.map((p: { name: string; value: number; color: string }) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {p.name === "reel" ? "Réel" : p.name === "objectif" ? "Objectif" : p.name} : {formatEuro(p.value)}
-        </p>
-      ))}
+      {payload
+        .filter((p: { name: string; value: number }) => {
+          if ((p.name === "objectifVacances" || p.name === "objectifAutre") && (p.value ?? 0) === 0) return false;
+          return true;
+        })
+        .map((p: { name: string; value: number; color: string }) => (
+          <p key={p.name} style={{ color: p.color }}>
+            {labels[p.name] ?? p.name}: {formatEuro(p.value)}
+          </p>
+        ))}
     </div>
   );
 }
@@ -90,6 +108,10 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
     mois: d.label,
     reel: d.reel,
     objectif: d.objectif,
+    objectifStandard: d.objectifStandard,
+    objectifVacances: d.objectifVacances,
+    objectifAutre: d.objectifAutre,
+    remboursements: d.remboursements,
   }));
 
   if (!mounted) {
@@ -200,7 +222,24 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
         className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6"
       >
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Réel vs Objectif — Par mois</h3>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-5">Comparaison mois par mois sur l&apos;année</p>
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-4">Comparaison mois par mois sur l&apos;année (objectif décomposé par catégorie)</p>
+
+        {/* Légende externe — plus fiable que le composant Legend de Recharts */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+          {([
+            { label: "Réel", color: colors.reel },
+            { label: "Standard", color: isDark ? "#52525b" : "#d4d4d8" },
+            ...(annuelle.some((d) => d.objectifVacances > 0) ? [{ label: "Vacances", color: "#f59e0b" }] : []),
+            ...(annuelle.some((d) => d.objectifAutre > 0) ? [{ label: "Autre", color: "#8b5cf6" }] : []),
+            ...(annuelle.some((d) => d.remboursements > 0) ? [{ label: "Remboursements", color: "#f87171" }] : []),
+          ] as { label: string; color: string }[]).map(({ label, color }) => (
+            <div key={label} className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span style={{ background: color, width: 10, height: 10, display: "inline-block", borderRadius: 2 }} />
+              {label}
+            </div>
+          ))}
+        </div>
+
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={annuelle} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
             <CartesianGrid stroke={colors.grid} strokeDasharray="3 3" vertical={false} />
@@ -208,8 +247,12 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
             <YAxis tick={{ fontSize: 11, fill: colors.text }} axisLine={false} tickLine={false}
               tickFormatter={(v) => `${v}€`} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend formatter={(v) => v === "reel" ? "Réel" : "Objectif"} wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="objectif" name="objectif" fill={colors.objectif} radius={[4, 4, 0, 0]} maxBarSize={28} />
+            {/* Stacked objectif bars */}
+            <Bar dataKey="objectifStandard" name="objectifStandard" stackId="obj" fill={isDark ? "#52525b" : "#d4d4d8"} maxBarSize={28} />
+            <Bar dataKey="objectifVacances" name="objectifVacances" stackId="obj" fill="#f59e0b" maxBarSize={28} />
+            <Bar dataKey="objectifAutre" name="objectifAutre" stackId="obj" fill="#8b5cf6" maxBarSize={28} />
+            <Bar dataKey="remboursements" name="remboursements" stackId="obj" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            {/* Réel */}
             <Bar dataKey="reel" name="reel" fill={colors.reel} radius={[4, 4, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>

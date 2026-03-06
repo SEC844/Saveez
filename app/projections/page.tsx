@@ -31,7 +31,8 @@ export default async function ProjectionsPage() {
     imprévusActifs,
     epargneMensuelles,
     currentYear,
-    objectifs
+    objectifs,
+    currentMonth
   );
 
   const moisRestants = 12 - currentMonth;

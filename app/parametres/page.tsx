@@ -5,22 +5,30 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import SettingsForm from "./SettingsForm";
-import { Settings } from "lucide-react";
+import CompteSettings from "./CompteSettings";
+import DangerZoneCard from "./DangerZoneCard";
+import { Settings, Wallet } from "lucide-react";
 
 export default async function ParametresPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      name: true,
-      objectifBase: true,
-      fondsSecurite: true,
-      epargneActuelle: true,
-      revenuNet: true,
-    },
-  });
+  const [user, comptes] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        name: true,
+        objectifBase: true,
+        fondsSecurite: true,
+        epargneActuelle: true,
+        revenuNet: true,
+      },
+    }),
+    prisma.compte.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   if (!user) redirect("/login");
 
@@ -47,6 +55,21 @@ export default async function ParametresPage() {
             revenuNet: user.revenuNet,
           }}
         />
+
+        {/* Séparateur */}
+        <div className="mt-8 mb-6 border-t border-zinc-100 dark:border-zinc-800" />
+
+        {/* Comptes spéciaux */}
+        <div className="flex items-center gap-2 mb-4">
+          <Wallet size={14} className="text-zinc-400" />
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Comptes spéciaux</h2>
+        </div>
+        <CompteSettings comptes={comptes} />
+
+        {/* Zone de danger */}
+        <div className="mt-8">
+          <DangerZoneCard />
+        </div>
       </div>
     </DashboardShell>
   );

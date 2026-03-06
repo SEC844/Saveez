@@ -37,7 +37,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs \
- && adduser  --system --uid 1001 nextjs
+    && adduser  --system --uid 1001 nextjs
 
 # ── Next.js standalone output ─────────────────────────────────
 # (copies server.js + its minimal node_modules to /app)

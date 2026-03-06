@@ -5,6 +5,7 @@ import {
   getObjectifDynamique,
   getEcart,
   getProjectionFinAnnee,
+  getObjectifBreakdownForMonth,
 } from "@/lib/epargne";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import StatCard from "@/components/dashboard/StatCard";
@@ -14,6 +15,7 @@ import ImprevuProgressCard from "@/components/dashboard/ImprevuProgressCard";
 import AddEpargneModal from "@/components/dashboard/AddEpargneModal";
 import AddImprevuModal from "@/components/dashboard/AddImprevuModal";
 import WhatIfModal from "@/components/dashboard/WhatIfModal";
+import OnboardingModal from "@/components/dashboard/OnboardingModal";
 import { Wallet, Target, TrendingUp, ArrowUpDown, History } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -25,16 +27,32 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect("/login");
 
   const data = await getDashboardData(session.user.id);
-  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth, objectifs } = data;
+  const { user, epargneMensuelles, imprévusActifs, currentYear, currentMonth, objectifs, comptes } = data;
   const allImprévus = [...imprévusActifs, ...data.imprévusSoldés];
 
-  const objectifDuMois = getObjectifDynamique(
+  const breakdown = getObjectifBreakdownForMonth(
     user.objectifBase,
     allImprévus,
     currentYear,
     currentMonth,
     objectifs
   );
+
+  const objectifDuMois = breakdown.total;
+
+  const comptesActifs = comptes.filter((c) => c.actif);
+  const objectifsComptes: Record<string, number> = {};
+  for (const c of comptesActifs) {
+    const monthStart = new Date(currentYear, currentMonth - 1, 1);
+    const monthEnd = new Date(currentYear, currentMonth, 0);
+    const objCompte = objectifs.find((o) => {
+      if (o.compteId !== c.id) return false;
+      const d = new Date(o.dateDebut);
+      const f = o.dateFin ? new Date(o.dateFin) : null;
+      return d <= monthEnd && (!f || f >= monthStart);
+    });
+    if (objCompte) objectifsComptes[c.id] = objCompte.montant;
+  }
 
   const entreeCourante = epargneMensuelles.find(
     (e) => e.annee === currentYear && e.mois === currentMonth
@@ -49,7 +67,8 @@ export default async function DashboardPage() {
     allImprévus,
     epargneMensuelles,
     currentYear,
-    objectifs
+    objectifs,
+    currentMonth
   );
 
   const graphData = await getGraphData(session.user.id, user.objectifBase, allImprévus, objectifs);
@@ -61,6 +80,9 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell>
+      {/* Onboarding (shown once, right after registration) */}
+      {!user.onboardingDone && <OnboardingModal userName={user.name} />}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -70,7 +92,12 @@ export default async function DashboardPage() {
           <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-0.5 capitalize">{moisLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <AddEpargneModal />
+          <AddEpargneModal
+            comptesActifs={comptesActifs}
+            objectifStandard={breakdown.standard}
+            objectifsComptes={objectifsComptes}
+            montantImprevu={breakdown.remboursements}
+          />
           <AddImprevuModal objectifBase={user.objectifBase} />
           <WhatIfModal epargneActuelle={user.epargneActuelle} />
         </div>
@@ -88,7 +115,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Objectif du mois"
           value={`${objectifDuMois.toLocaleString("fr-FR")} €`}
-          subValue={imprévusActifs.length > 0 ? `dont ${(objectifDuMois - user.objectifBase).toLocaleString("fr-FR")} € remb.` : undefined}
+          subValue={imprévusActifs.length > 0 ? `dont ${breakdown.remboursements.toLocaleString("fr-FR")} € remb.` : undefined}
           icon={Target}
           delay={0.05}
         />
@@ -187,7 +214,7 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {epargneMensuelles.slice(0, 6).map((e, i) => {
-                  const obj = getObjectifDynamique(user.objectifBase, allImprévus, e.annee, e.mois);
+                  const obj = getObjectifDynamique(user.objectifBase, allImprévus, e.annee, e.mois, objectifs);
                   const diff = getEcart(e.montant, obj);
                   return (
                     <tr key={e.id} className={i < 5 ? "border-b border-zinc-50 dark:border-zinc-800/50" : ""}>

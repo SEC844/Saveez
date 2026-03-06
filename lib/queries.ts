@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import type { Imprevu, EpargneMensuelle, User, Objectif, ActionLog } from "@prisma/client";
+import type { Imprevu, EpargneMensuelle, User, Objectif, ActionLog, Compte } from "@prisma/client";
 
 export type DashboardData = {
   user: User;
@@ -8,6 +8,7 @@ export type DashboardData = {
   imprévusActifs: Imprevu[];
   imprévusSoldés: Imprevu[];
   objectifs: Objectif[];
+  comptes: Compte[];
   currentYear: number;
   currentMonth: number;
 };
@@ -20,7 +21,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
-  const [user, epargneMensuelles, allImprévus, objectifs] = await Promise.all([
+  const [user, epargneMensuelles, allImprévus, objectifs, comptes] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.epargneMensuelle.findMany({
       where: { userId },
@@ -34,6 +35,10 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       where: { userId },
       orderBy: { dateDebut: "asc" },
     }),
+    prisma.compte.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   if (!user) redirect("/login?error=session");
@@ -44,6 +49,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     imprévusActifs: allImprévus.filter((i) => !i.estSolde),
     imprévusSoldés: allImprévus.filter((i) => i.estSolde),
     objectifs,
+    comptes,
     currentYear,
     currentMonth,
   };
@@ -58,7 +64,7 @@ export async function getGraphData(
   imprévus: Imprevu[],
   objectifs: Objectif[] = []
 ) {
-  const { getObjectifDynamique } = await import("@/lib/epargne");
+  const { getObjectifDynamique, getObjectifBreakdownForMonth } = await import("@/lib/epargne");
 
   const today = new Date();
   const points = [];
@@ -72,12 +78,18 @@ export async function getGraphData(
       where: { userId_annee_mois: { userId, annee, mois } },
     });
 
+    const breakdown = getObjectifBreakdownForMonth(objectifBase, imprévus, annee, mois, objectifs);
+
     points.push({
       label: date.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }),
       annee,
       mois,
       reel: entree?.montant ?? null,
       objectif: getObjectifDynamique(objectifBase, imprévus, annee, mois, objectifs),
+      objectifStandard: breakdown.standard,
+      objectifVacances: breakdown.vacances,
+      objectifAutre: breakdown.autre,
+      remboursements: breakdown.remboursements,
     });
   }
 

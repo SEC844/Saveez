@@ -23,7 +23,7 @@ export async function updateSettingsAction(
   const objectifBase = parseFloat(formData.get("objectifBase") as string);
   const fondsSecurite = parseFloat(formData.get("fondsSecurite") as string);
   const epargneActuelle = parseFloat(formData.get("epargneActuelle") as string);
-  const name = (formData.get("name") as string)?.trim() || null;
+  const nameRaw = formData.has("name") ? (formData.get("name") as string)?.trim() || null : undefined;
   const revenuNetRaw = formData.get("revenuNet") as string;
   const revenuNet = revenuNetRaw ? parseFloat(revenuNetRaw) : null;
 
@@ -39,7 +39,7 @@ export async function updateSettingsAction(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { objectifBase, fondsSecurite, epargneActuelle, name, revenuNet },
+      data: { objectifBase, fondsSecurite, epargneActuelle, ...(nameRaw !== undefined ? { name: nameRaw } : {}), revenuNet },
     }),
     prisma.actionLog.create({
       data: {
@@ -53,6 +53,17 @@ export async function updateSettingsAction(
   revalidatePath("/");
   revalidatePath("/parametres");
   return { success: true };
+}
+
+// ─── Marquer l'onboarding comme terminé ──────────────────────────────────────
+
+export async function completeOnboardingAction(): Promise<void> {
+  const userId = await getAuthUserId();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { onboardingDone: true },
+  });
+  revalidatePath("/");
 }
 
 // ─── Réinitialiser toutes les données utilisateur ───────────────────────────
