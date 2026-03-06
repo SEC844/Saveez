@@ -2,7 +2,7 @@
 
 import { useState, useActionState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ChevronRight, Wallet, Target, Shield } from "lucide-react";
+import { Loader2, ChevronRight, Wallet, Target, Shield, PiggyBank } from "lucide-react";
 import { updateSettingsAction } from "@/app/actions/user-settings";
 import { completeOnboardingAction } from "@/app/actions/user-settings";
 
@@ -44,6 +44,17 @@ const STEPS = [
         name: "fondsSecurite",
         hint: "Un matelas de 3 à 6 mois de charges est généralement recommandé.",
     },
+    {
+        key: "epargneActuelle",
+        icon: PiggyBank,
+        color: "rose",
+        title: "Votre épargne actuelle",
+        desc: "Combien avez-vous déjà mis de côté sur votre compte épargne ?",
+        label: "Solde actuel (€)",
+        placeholder: "Ex : 2 000",
+        name: "epargneActuelle",
+        hint: "Indiquez 0 si vous partez de zéro. Ce montant servira de base à vos projections.",
+    },
 ] as const;
 
 const COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
@@ -65,6 +76,12 @@ const COLORS: Record<string, { bg: string; border: string; text: string; icon: s
         text: "text-violet-700 dark:text-violet-300",
         icon: "text-violet-500",
     },
+    rose: {
+        bg: "bg-rose-50 dark:bg-rose-950/20",
+        border: "border-rose-200 dark:border-rose-800",
+        text: "text-rose-700 dark:text-rose-300",
+        icon: "text-rose-500",
+    },
 };
 
 export default function OnboardingModal({ userName }: OnboardingModalProps) {
@@ -73,7 +90,7 @@ export default function OnboardingModal({ userName }: OnboardingModalProps) {
         revenuNet: "",
         objectifBase: "",
         fondsSecurite: "",
-        epargneActuelle: "0",
+        epargneActuelle: "",
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -83,7 +100,9 @@ export default function OnboardingModal({ userName }: OnboardingModalProps) {
     const isLast = step === STEPS.length - 1;
 
     async function handleNext() {
-        const val = parseFloat(values[current.key]);
+        // epargneActuelle is optional — empty defaults to 0
+        const rawVal = values[current.key];
+        const val = current.key === "epargneActuelle" && !rawVal ? 0 : parseFloat(rawVal);
         if (isNaN(val) || val < 0) {
             setError("Veuillez entrer un montant valide.");
             return;
@@ -155,7 +174,7 @@ export default function OnboardingModal({ userName }: OnboardingModalProps) {
                                     Bienvenue{userName ? `, ${userName}` : ""} !
                                 </h1>
                                 <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">
-                                    Configurons Saveez en 3 étapes rapides.
+                                    Configurons Saveez en 4 étapes rapides.
                                 </p>
                             </motion.div>
                         )}

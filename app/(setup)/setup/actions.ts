@@ -16,9 +16,6 @@ export async function setupAction(
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
   const confirm = formData.get("confirm") as string;
-  const epargneActuelleRaw = formData.get("epargneActuelle") as string;
-  const epargneActuelle = epargneActuelleRaw ? parseFloat(epargneActuelleRaw) : 0;
-
   if (!email || !password) {
     return { error: "Veuillez remplir tous les champs obligatoires." };
   }
@@ -44,7 +41,6 @@ export async function setupAction(
       email,
       passwordHash,
       name: name || null,
-      epargneActuelle: isNaN(epargneActuelle) ? 0 : epargneActuelle,
     },
   });
 

@@ -138,34 +138,6 @@ export default function SetupForm() {
               </div>
             </div>
 
-            {/* Épargne actuelle */}
-            <div>
-              <label
-                htmlFor="epargneActuelle"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
-              >
-                Solde épargne actuel{" "}
-                <span className="text-zinc-400 font-normal">(optionnel)</span>
-              </label>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-2">
-                Montant déjà mis de côté sur votre compte épargne
-              </p>
-              <div className="relative">
-                <input
-                  id="epargneActuelle"
-                  name="epargneActuelle"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 pr-12 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:border-transparent transition-all"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none">
-                  €
-                </span>
-              </div>
-            </div>
-
             {/* Error / Success */}
             {state?.error && (
               <motion.div
