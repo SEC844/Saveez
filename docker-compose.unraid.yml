@@ -7,14 +7,14 @@
 #  Ce fichier ne lance QUE le conteneur Saveez.
 #  Aucun fichier .env requis : toutes les variables sont déclarées ici.
 #
-#  ⚠️  AVANT DE LANCER : remplacez les 4 valeurs CHANGE_ME
+#  ⚠️  AVANT DE LANCER : remplacez les valeurs marquées  ← CHANGE_ME
 #
 #  Usage :
 #    docker compose -f docker-compose.unraid.yml pull
 #    docker compose -f docker-compose.unraid.yml up -d
 #
 #  Mise à jour :
-#    docker compose -f docker-compose.unraid.yml pull
+#    docker compose -f docker-compose.unraid.yml pull && \
 #    docker compose -f docker-compose.unraid.yml up -d
 # ==============================================================================
 
@@ -24,31 +24,47 @@ services:
     container_name: saveez
     restart: unless-stopped
     environment:
-      # ── Base de données ──────────────────────────────────────────────────────
-      # Indiquez l'IP/hostname de votre PostgreSQL externe.
-      # Sur Unraid : utilisez l'IP de votre serveur (ex: 192.168.1.100)
-      # ou le nom du conteneur PostgreSQL si sur le même réseau Docker.
-      DATABASE_URL: postgresql://CHANGE_ME_DB_USER:CHANGE_ME_DB_PASSWORD@192.168.1.100:5432/saveez_db?schema=public
+
+      # ── Base de données ─────────────────────────────────────────────────────
+      # Renseignez chaque champ séparément — DATABASE_URL doit refléter les mêmes valeurs
+
+      DB_HOST: 192.168.1.100           # ← CHANGE_ME  IP ou hostname de votre PostgreSQL
+      DB_PORT: 5432                    # Port PostgreSQL (défaut : 5432)
+      DB_USER: saveez_user             # ← CHANGE_ME  utilisateur PostgreSQL
+      DB_PASSWORD: CHANGE_ME_DB_PASSWORD   # ← CHANGE_ME  mot de passe PostgreSQL
+      DB_NAME: saveez_db               # Nom de la base de données
+
+      # Doit correspondre exactement aux 5 variables ci-dessus
+      DATABASE_URL: postgresql://saveez_user:CHANGE_ME_DB_PASSWORD@192.168.1.100:5432/saveez_db?schema=public
 
       # ── Auth ─────────────────────────────────────────────────────────────────
       # Générer avec : openssl rand -base64 32
-      NEXTAUTH_SECRET: CHANGE_ME_GENERATE_WITH_OPENSSL
+      NEXTAUTH_SECRET: CHANGE_ME_GENERATE_WITH_OPENSSL   # ← CHANGE_ME
 
-      # URL publique de votre instance Saveez (IP ou domaine, sans slash final)
-      NEXTAUTH_URL: http://192.168.1.100:3000   # ← modifier avec votre IP/domaine
+      # URL publique de votre instance Saveez (sans slash final)
+      NEXTAUTH_URL: http://192.168.1.100:3000             # ← CHANGE_ME
 
+      # ── Application ──────────────────────────────────────────────────────────
       NODE_ENV: production
 
-    ports:
-      - "3000:3000"   # port hôte:port conteneur — changer le port hôte si nécessaire
+      # Niveau de journalisation : error | warn | info | verbose | debug
+      LOG_LEVEL: info
 
-    # Attend que la base de données soit prête (healthcheck via pg_isready)
-    # Si votre PostgreSQL est externe, vous pouvez retirer ce bloc.
+      # Pour activer les logs des requêtes SQL Prisma, décommenter la ligne :
+      # DEBUG: "prisma:query"
+
+      # Pour activer TOUS les logs Prisma (très verbeux) :
+      # DEBUG: "prisma:*"
+
+    ports:
+      - "3000:3000"   # Format : "PORT_HOTE:3000" — changer PORT_HOTE si nécessaire
+
+    # Contrôle de santé optionnel (vérifie que l'app répond)
     # healthcheck:
-    #   test: ["CMD-SHELL", "nc -z 192.168.1.100 5432"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
+    #   test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
 
     # Exécute les migrations Prisma au démarrage puis lance l'app
     command: >

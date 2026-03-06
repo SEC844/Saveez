@@ -33,7 +33,7 @@ jobs:
       - name: Next.js build
         env:
           # Dummy values — only needed for build-time validation, not runtime
-          DATABASE_URL: postgresql://user:pass@localhost:5432/epargne_db
+          DATABASE_URL: postgresql://user:pass@localhost:5432/saveez_db
           NEXTAUTH_SECRET: ci-dummy-secret-32-chars-minimum-ok
           NEXTAUTH_URL: http://localhost:3000
         run: npm run build
