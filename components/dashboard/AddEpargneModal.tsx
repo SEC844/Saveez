@@ -19,9 +19,10 @@ interface AddEpargneModalProps {
   comptesActifs: Compte[];
   objectifStandard: number;
   objectifsComptes: Record<string, number>;
+  montantImprevu?: number;
 }
 
-export default function AddEpargneModal({ comptesActifs, objectifStandard, objectifsComptes }: AddEpargneModalProps) {
+export default function AddEpargneModal({ comptesActifs, objectifStandard, objectifsComptes, montantImprevu = 0 }: AddEpargneModalProps) {
   const now = new Date();
   const [open, setOpen] = useState(false);
   const [state, action, isPending] = useActionState(upsertEpargneMensuelleAction, null);
@@ -118,8 +119,13 @@ export default function AddEpargneModal({ comptesActifs, objectifStandard, objec
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">{"Epargne totale ce mois (€)"}</label>
             {totalCible > 0 && (
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1.5">
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1">
                 Objectif global : {totalCible.toLocaleString("fr-FR")} €
+              </p>
+            )}
+            {montantImprevu > 0 && (
+              <p className="text-[10px] text-amber-500 mb-1.5">
+                + Imprévus en cours : {montantImprevu.toLocaleString("fr-FR")} €
               </p>
             )}
             <input name="montant" type="number" min="0" step="0.01" required value={total} onChange={(e) => setTotal(e.target.value)}
@@ -166,8 +172,8 @@ export default function AddEpargneModal({ comptesActifs, objectifStandard, objec
             )}
           </AnimatePresence>
 
-          <motion.button type="submit" disabled={isPending} whileTap={{ scale: 0.98 }}
-            className="w-full h-10 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+          <motion.button type="submit" disabled={isPending || ecart < -0.01} whileTap={{ scale: 0.97 }}
+            className="w-full h-10 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
             {isPending ? <Loader2 size={14} className="animate-spin" /> : state?.success ? <CheckCircle size={14} /> : <Plus size={14} />}
             {state?.success ? "Enregistre !" : "Enregistrer"}
           </motion.button>

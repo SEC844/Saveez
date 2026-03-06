@@ -47,6 +47,13 @@ export async function upsertEpargneMensuelleAction(
   const hasRepartition = Object.keys(repartitionRaw).length > 0;
   const repartition = hasRepartition ? repartitionRaw : undefined;
 
+  // ── Lire l'ancienne valeur avant upsert (pour le delta) ──────────────────
+  const oldEntry = await prisma.epargneMensuelle.findUnique({
+    where: { userId_annee_mois: { userId, annee, mois } },
+    select: { montant: true },
+  });
+  const oldMontant = oldEntry?.montant ?? 0;
+
   // ── Upsert de l'entrée ────────────────────────────────────────────────────
   await prisma.epargneMensuelle.upsert({
     where: { userId_annee_mois: { userId, annee, mois } },
@@ -55,8 +62,6 @@ export async function upsertEpargneMensuelleAction(
   });
 
   // ── Recalcul du montantRembourse sur les imprévus ─────────────────────────
-  // Pour chaque imprévu actif, on compte combien de mois avec une entrée
-  // tombent dans sa période de remboursement.
   const [toutes, imprévus] = await Promise.all([
     prisma.epargneMensuelle.findMany({ where: { userId } }),
     prisma.imprevu.findMany({ where: { userId } }),
@@ -81,9 +86,10 @@ export async function upsertEpargneMensuelleAction(
     });
   }
 
-  // ── Recalcul de l'épargne actuelle ────────────────────────────────────────
-  const totalEpargne = toutes.reduce((s, e) => s + e.montant, 0);
-  const totalImprévus = imprévus.reduce((s, i) => s + i.montantTotal, 0);
+  // ── Mise à jour de l'épargne actuelle par delta ──────────────────────────
+  // On incrémente du delta uniquement, pour ne pas écraser le solde de base
+  // que l'utilisateur a saisi manuellement dans les paramètres.
+  const delta = montant - oldMontant;
 
   const moisLabel = new Date(annee, mois - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
@@ -105,7 +111,7 @@ export async function upsertEpargneMensuelleAction(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { epargneActuelle: Math.max(0, totalEpargne - totalImprévus) },
+      data: { epargneActuelle: { increment: delta } },
     }),
     prisma.actionLog.create({
       data: {
@@ -129,7 +135,13 @@ export async function deleteEpargneMensuelleAction(id: string) {
   const entry = await prisma.epargneMensuelle.findUnique({ where: { id } });
   if (!entry || entry.userId !== userId) return { error: "Introuvable." };
 
-  await prisma.epargneMensuelle.delete({ where: { id } });
+  await prisma.$transaction([
+    prisma.epargneMensuelle.delete({ where: { id } }),
+    prisma.user.update({
+      where: { id: userId },
+      data: { epargneActuelle: { decrement: entry.montant } },
+    }),
+  ]);
   revalidatePath("/");
   return { success: true };
 }

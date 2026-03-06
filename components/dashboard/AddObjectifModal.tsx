@@ -131,11 +131,10 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
                 <button
                   type="button"
                   onClick={() => handleSelectType("standard", "")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
-                    categorie === "standard"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${categorie === "standard"
                       ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white"
                       : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
-                  }`}
+                    }`}
                 >
                   <Target size={11} />
                   Standard
@@ -146,13 +145,12 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
                     key={c.id}
                     type="button"
                     onClick={() => handleSelectType(c.type, c.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
-                      compteId === c.id
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${compteId === c.id
                         ? c.type === "vacances"
                           ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-400"
                           : "bg-violet-50 dark:bg-violet-950/30 border-violet-300 dark:border-violet-600 text-violet-700 dark:text-violet-400"
                         : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
-                    }`}
+                      }`}
                   >
                     {c.label}
                   </button>
@@ -218,11 +216,10 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
                   key={p.id}
                   type="button"
                   onClick={() => handlePresetChange(p.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                    preset === p.id
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${preset === p.id
                       ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
                       : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
+                    }`}
                 >
                   {p.label}
                 </button>
@@ -256,9 +253,8 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
                 value={dateFin}
                 onChange={(e) => setDateFin(e.target.value)}
                 readOnly={preset !== "custom"}
-                className={`w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all ${
-                  preset !== "custom" ? "opacity-60 cursor-not-allowed" : ""
-                }`}
+                className={`w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all ${preset !== "custom" ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
               />
             </div>
           </div>

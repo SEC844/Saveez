@@ -45,6 +45,11 @@ export default async function ParametresPage() {
           </div>
         </div>
 
+        <CompteSettings comptes={comptes} />
+
+        {/* Séparateur */}
+        <div className="mt-8 mb-6 border-t border-zinc-100 dark:border-zinc-800" />
+
         <SettingsForm
           defaultValues={{
             name: user.name,
@@ -54,11 +59,6 @@ export default async function ParametresPage() {
             revenuNet: user.revenuNet,
           }}
         />
-
-        {/* Séparateur */}
-        <div className="mt-10 mb-6 border-t border-zinc-100 dark:border-zinc-800" />
-
-        <CompteSettings comptes={comptes} />
       </div>
     </DashboardShell>
   );

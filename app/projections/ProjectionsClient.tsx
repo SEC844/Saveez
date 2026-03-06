@@ -226,17 +226,31 @@ export default function ProjectionsClient({ graphData, projection, epargneActuel
               tickFormatter={(v) => `${v}€`} />
             <Tooltip content={<CustomTooltip />} />
             <Legend
-              formatter={(v: string) => {
-                const map: Record<string, string> = {
-                  objectifStandard: "Standard",
-                  objectifVacances: "Vacances",
-                  objectifAutre: "Autre",
-                  remboursements: "Remboursements",
-                  reel: "Réel",
-                };
-                return map[v] ?? v;
+              content={() => {
+                const entries = [
+                  { label: "Réel", color: colors.reel },
+                  { label: "Standard", color: isDark ? "#52525b" : "#d4d4d8" },
+                  ...(annuelle.some((d) => d.objectifVacances > 0)
+                    ? [{ label: "Vacances", color: "#f59e0b" }]
+                    : []),
+                  ...(annuelle.some((d) => d.objectifAutre > 0)
+                    ? [{ label: "Autre", color: "#8b5cf6" }]
+                    : []),
+                  ...(annuelle.some((d) => d.remboursements > 0)
+                    ? [{ label: "Remboursements", color: "#f87171" }]
+                    : []),
+                ];
+                return (
+                  <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2">
+                    {entries.map(({ label, color }) => (
+                      <li key={label} className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                        <span style={{ background: color, width: 10, height: 10, display: "inline-block", borderRadius: 2, flexShrink: 0 }} />
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                );
               }}
-              wrapperStyle={{ fontSize: 11 }}
             />
             {/* Stacked objectif bars */}
             <Bar dataKey="objectifStandard" name="objectifStandard" stackId="obj" fill={isDark ? "#52525b" : "#d4d4d8"} maxBarSize={28} />
