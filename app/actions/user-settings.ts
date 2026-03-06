@@ -55,6 +55,17 @@ export async function updateSettingsAction(
   return { success: true };
 }
 
+// ─── Marquer l'onboarding comme terminé ──────────────────────────────────────
+
+export async function completeOnboardingAction(): Promise<void> {
+  const userId = await getAuthUserId();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { onboardingDone: true },
+  });
+  revalidatePath("/");
+}
+
 // ─── Réinitialiser toutes les données utilisateur ───────────────────────────
 
 export async function resetUserDataAction(

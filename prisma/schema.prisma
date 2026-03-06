@@ -27,6 +27,7 @@ model User {
   fondsSecurite   Float  @default(5000) // Palier "intouchable" (€)
   epargneActuelle Float  @default(0)    // Solde courant (€)
   revenuNet       Float? // Revenu mensuel net optionnel (pour suggestions d'objectifs)
+  onboardingDone  Boolean @default(false) // Popup de configuration initiale affichée
 
   // Relations
   epargneMensuelles EpargneMensuelle[]
@@ -96,6 +97,7 @@ model Objectif {
 
   montant   Float   // Montant mensuel cible (€)
   label     String? // Description optionnelle
+  categorie String  @default("standard") // "standard" | "vacances" | "autre"
 
   dateDebut DateTime  // Début de la période
   dateFin   DateTime? // Fin de la période — null = sans fin

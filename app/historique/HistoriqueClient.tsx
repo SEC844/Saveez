@@ -128,11 +128,10 @@ export default function HistoriqueClient({ logs, totalCount }: HistoriqueClientP
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setActiveFilter(null)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeFilter === null
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeFilter === null
                 ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-            }`}
+              }`}
           >
             Tout ({totalCount})
           </button>
@@ -147,11 +146,10 @@ export default function HistoriqueClient({ logs, totalCount }: HistoriqueClientP
               <button
                 key={t}
                 onClick={() => setActiveFilter(activeFilter === t ? null : t)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  activeFilter === t
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeFilter === t
                     ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
                     : `${cfg.bg} ${cfg.color} hover:opacity-80`
-                }`}
+                  }`}
               >
                 {TYPE_LABEL[t] ?? t} ({count})
               </button>
@@ -178,11 +176,10 @@ export default function HistoriqueClient({ logs, totalCount }: HistoriqueClientP
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 8 }}
                 transition={{ delay: i * 0.02 }}
-                className={`flex items-start gap-4 px-5 py-4 ${
-                  i < filtered.length - 1
+                className={`flex items-start gap-4 px-5 py-4 ${i < filtered.length - 1
                     ? "border-b border-zinc-50 dark:border-zinc-800"
                     : ""
-                }`}
+                  }`}
               >
                 {/* Icône */}
                 <div
@@ -200,11 +197,10 @@ export default function HistoriqueClient({ logs, totalCount }: HistoriqueClientP
                 {/* Montant */}
                 {log.montant !== null && (
                   <span
-                    className={`text-sm font-semibold flex-shrink-0 ${
-                      log.type === "add_epargne" || log.type === "rembourser" || log.type === "delete_imprevu"
+                    className={`text-sm font-semibold flex-shrink-0 ${log.type === "add_epargne" || log.type === "rembourser" || log.type === "delete_imprevu"
                         ? "text-emerald-500"
                         : "text-red-400"
-                    }`}
+                      }`}
                   >
                     {log.type === "add_imprevu" ? "-" : "+"}
                     {log.montant.toLocaleString("fr-FR")} €

@@ -1,8 +1,8 @@
-import type { EpargneMensuelle, Imprevu, Objectif } from "@prisma/client";
+﻿import type { EpargneMensuelle, Imprevu, Objectif } from "@prisma/client";
 
 /**
- * Trouve l'objectif actif pour une date donnée parmi les objectifs temporels.
- * Si aucun objectif ne couvre cette date, retourne null.
+ * Retourne l'objectif STANDARD actif pour une date donnée.
+ * Les objectifs spéciaux (vacances, autre) sont ignorés ici.
  */
 export function getObjectifActifPourDate(
   objectifs: Objectif[],
@@ -11,6 +11,7 @@ export function getObjectifActifPourDate(
   const t = date.getTime();
   return (
     objectifs.find((o) => {
+      if (o.categorie && o.categorie !== "standard") return false;
       const debut = new Date(o.dateDebut).getTime();
       const fin = o.dateFin ? new Date(o.dateFin).getTime() : Infinity;
       return t >= debut && t <= fin;
@@ -19,8 +20,25 @@ export function getObjectifActifPourDate(
 }
 
 /**
- * Retourne le montant de base de l'objectif pour un mois/année donné.
- * Priorité : objectif temporel actif → sinon objectifBase de l'utilisateur.
+ * Retourne les objectifs SPÉCIAUX (vacances, autre) actifs pour une date donnée.
+ * Ces objectifs sont additifs et peuvent se superposer à un standard.
+ */
+export function getSpeciauxActifsPourDate(
+  objectifs: Objectif[],
+  date: Date
+): Objectif[] {
+  const t = date.getTime();
+  return objectifs.filter((o) => {
+    if (!o.categorie || o.categorie === "standard") return false;
+    const debut = new Date(o.dateDebut).getTime();
+    const fin = o.dateFin ? new Date(o.dateFin).getTime() : Infinity;
+    return t >= debut && t <= fin;
+  });
+}
+
+/**
+ * Retourne le montant de base (standard) de l'objectif pour un mois/année.
+ * Priorité : objectif standard temporel actif → sinon objectifBase.
  */
 export function getObjectifBaseForMonth(
   objectifBase: number,
@@ -28,14 +46,13 @@ export function getObjectifBaseForMonth(
   annee: number,
   mois: number
 ): number {
-  const date = new Date(annee, mois - 1, 15); // milieu du mois
+  const date = new Date(annee, mois - 1, 15);
   const actif = getObjectifActifPourDate(objectifs, date);
   return actif?.montant ?? objectifBase;
 }
 
 /**
- * Calcule le montant de remboursement actif des imprévus pour un mois/année donnés.
- * Un imprévu est actif si la date (annee, mois) est dans sa fenêtre de remboursement.
+ * Calcule le montant de remboursement actif des imprévus pour un mois/année.
  */
 export function getRemboursementActif(
   imprévus: Imprevu[],
@@ -54,8 +71,44 @@ export function getRemboursementActif(
 }
 
 /**
- * Retourne l'objectif mensuel dynamique pour un mois/année donnés.
- * objectifDynamique = objectifBase (ou objectif temporel) + remboursements actifs
+ * Décompose l'objectif mensuel par catégorie pour un mois/année donnés.
+ * Utile pour les graphiques en couleur par catégorie.
+ */
+export function getObjectifBreakdownForMonth(
+  objectifBase: number,
+  imprévus: Imprevu[],
+  annee: number,
+  mois: number,
+  objectifs: Objectif[] = []
+): {
+  standard: number;
+  vacances: number;
+  autre: number;
+  remboursements: number;
+  total: number;
+} {
+  const date = new Date(annee, mois - 1, 15);
+  const standard = getObjectifBaseForMonth(objectifBase, objectifs, annee, mois);
+  const speciaux = getSpeciauxActifsPourDate(objectifs, date);
+  const vacances = speciaux
+    .filter((o) => o.categorie === "vacances")
+    .reduce((s, o) => s + o.montant, 0);
+  const autre = speciaux
+    .filter((o) => o.categorie === "autre")
+    .reduce((s, o) => s + o.montant, 0);
+  const remboursements = getRemboursementActif(imprévus, annee, mois);
+  return {
+    standard,
+    vacances,
+    autre,
+    remboursements,
+    total: standard + vacances + autre + remboursements,
+  };
+}
+
+/**
+ * Retourne l'objectif mensuel dynamique total pour un mois/année.
+ * = standard (ou objectifBase) + spéciaux actifs + remboursements imprévus
  */
 export function getObjectifDynamique(
   objectifBase: number,
@@ -64,13 +117,12 @@ export function getObjectifDynamique(
   mois: number,
   objectifs: Objectif[] = []
 ): number {
-  const base = getObjectifBaseForMonth(objectifBase, objectifs, annee, mois);
-  return base + getRemboursementActif(imprévus, annee, mois);
+  const bd = getObjectifBreakdownForMonth(objectifBase, imprévus, annee, mois, objectifs);
+  return bd.total;
 }
 
 /**
  * Calcule l'écart entre ce qui a été mis de côté et l'objectif.
- * Positif = bonus, négatif = déficit.
  */
 export function getEcart(montantMis: number, objectif: number): number {
   return montantMis - objectif;

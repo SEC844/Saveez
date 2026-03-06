@@ -58,7 +58,7 @@ export async function getGraphData(
   imprévus: Imprevu[],
   objectifs: Objectif[] = []
 ) {
-  const { getObjectifDynamique } = await import("@/lib/epargne");
+  const { getObjectifDynamique, getObjectifBreakdownForMonth } = await import("@/lib/epargne");
 
   const today = new Date();
   const points = [];
@@ -72,12 +72,18 @@ export async function getGraphData(
       where: { userId_annee_mois: { userId, annee, mois } },
     });
 
+    const breakdown = getObjectifBreakdownForMonth(objectifBase, imprévus, annee, mois, objectifs);
+
     points.push({
       label: date.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }),
       annee,
       mois,
       reel: entree?.montant ?? null,
       objectif: getObjectifDynamique(objectifBase, imprévus, annee, mois, objectifs),
+      objectifStandard: breakdown.standard,
+      objectifVacances: breakdown.vacances,
+      objectifAutre: breakdown.autre,
+      remboursements: breakdown.remboursements,
     });
   }
 

@@ -14,6 +14,7 @@ import ImprevuProgressCard from "@/components/dashboard/ImprevuProgressCard";
 import AddEpargneModal from "@/components/dashboard/AddEpargneModal";
 import AddImprevuModal from "@/components/dashboard/AddImprevuModal";
 import WhatIfModal from "@/components/dashboard/WhatIfModal";
+import OnboardingModal from "@/components/dashboard/OnboardingModal";
 import { Wallet, Target, TrendingUp, ArrowUpDown, History } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,9 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell>
+      {/* Onboarding (shown once, right after registration) */}
+      {!user.onboardingDone && <OnboardingModal userName={user.name} />}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>

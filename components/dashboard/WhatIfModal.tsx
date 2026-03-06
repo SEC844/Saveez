@@ -126,9 +126,8 @@ export default function WhatIfModal({ epargneActuelle }: WhatIfModalProps) {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-zinc-400 dark:text-zinc-500">Solde après dépense</p>
                   <p
-                    className={`text-xl font-semibold ${
-                      soldeApres < 0 ? "text-red-500" : "text-emerald-500"
-                    }`}
+                    className={`text-xl font-semibold ${soldeApres < 0 ? "text-red-500" : "text-emerald-500"
+                      }`}
                   >
                     {formatEuro(soldeApres)}
                   </p>
@@ -154,11 +153,10 @@ export default function WhatIfModal({ epargneActuelle }: WhatIfModalProps) {
                       key={m}
                       type="button"
                       onClick={() => handleMoisClick(m)}
-                      className={`px-4 h-8 rounded-lg text-xs font-medium transition-all ${
-                        selectedMois === m && !showCustom
+                      className={`px-4 h-8 rounded-lg text-xs font-medium transition-all ${selectedMois === m && !showCustom
                           ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 scale-105"
                           : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      }`}
+                        }`}
                     >
                       {m} mois
                     </button>
@@ -166,11 +164,10 @@ export default function WhatIfModal({ epargneActuelle }: WhatIfModalProps) {
                   <button
                     type="button"
                     onClick={handleCustomClick}
-                    className={`px-4 h-8 rounded-lg text-xs font-medium transition-all ${
-                      showCustom
+                    className={`px-4 h-8 rounded-lg text-xs font-medium transition-all ${showCustom
                         ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 scale-105"
                         : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    }`}
+                      }`}
                   >
                     Personnalisé
                   </button>
