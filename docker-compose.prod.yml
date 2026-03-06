@@ -1,50 +1,60 @@
-# ============================================================
-#  Docker Compose — Production
-#  Utilise l'image pré-buildée depuis ghcr.io (via CI/CD)
-#  au lieu de builder localement.
+# ==============================================================================
+#  docker-compose.prod.yml — Déploiement production (serveur avec PostgreSQL intégré)
+#
+#  Utilise l'image pré-buildée depuis ghcr.io. Ne nécessite pas de fichier .env :
+#  toutes les variables sont déclarées directement ci-dessous.
+#
+#  ⚠️  AVANT DE LANCER : remplacez les 3 valeurs CHANGE_ME
 #
 #  Usage :
-#    1. Copiez .env.example → .env et remplissez les valeurs
-#    2. Remplacez VOTRE_GITHUB_USER/epargne-app par votre repo
-#    3. docker compose -f docker-compose.prod.yml up -d
-# ============================================================
+#    docker compose -f docker-compose.prod.yml pull
+#    docker compose -f docker-compose.prod.yml up -d
+#
+#  Mise à jour (nouvelle version) :
+#    docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+# ==============================================================================
 
 services:
+
+  # ----------------------------------------------------------------------------
+  # Base de données PostgreSQL
+  # Les données sont persistées dans le volume nommé "saveez_db_data".
+  # ----------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
-    container_name: epargne_db
+    container_name: saveez_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-epargne_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?The POSTGRES_PASSWORD env var is required}
-      POSTGRES_DB: ${POSTGRES_DB:-epargne_db}
+      POSTGRES_USER: saveez_user
+      POSTGRES_PASSWORD: CHANGE_ME_STRONG_DB_PASSWORD   # ← modifier
+      POSTGRES_DB: saveez_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # Ne pas exposer en prod à moins d'en avoir besoin
-    # ports:
-    #   - "5432:5432"
+      - saveez_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-epargne_user} -d ${POSTGRES_DB:-epargne_db}" ]
+      test: ["CMD-SHELL", "pg_isready -U saveez_user -d saveez_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # ----------------------------------------------------------------------------
+  # Application Saveez
+  # ----------------------------------------------------------------------------
   app:
-    # Image buildée automatiquement par GitHub Actions (ghcr.io)
-    # Remplacez par votre repository GitHub
-    image: ghcr.io/VOTRE_GITHUB_USER/epargne-app:latest
-    container_name: epargne_app
+    image: ghcr.io/sec844/saveez:latest   # image buildée automatiquement par CI/CD
+    container_name: saveez_app
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-epargne_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-epargne_db}?schema=public
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://saveez_user:CHANGE_ME_STRONG_DB_PASSWORD@db:5432/saveez_db?schema=public
+      # Générer avec : openssl rand -base64 32
+      NEXTAUTH_SECRET: CHANGE_ME_GENERATE_WITH_OPENSSL   # ← modifier
+      # URL publique de votre instance (sans slash final)
+      NEXTAUTH_URL: http://localhost:3000                 # ← modifier (ex: https://saveez.mondomaine.com)
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      - "3000:3000"   # changer le port hôte si nécessaire (ex: "8080:3000")
     command: >
       sh -c "
         ./node_modules/.bin/prisma migrate deploy &&
@@ -52,4 +62,5 @@ services:
       "
 
 volumes:
-  postgres_data:
+  saveez_db_data:
+    driver: local

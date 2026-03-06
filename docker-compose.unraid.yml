@@ -1,0 +1,58 @@
+# ==============================================================================
+#  docker-compose.unraid.yml — Déploiement Unraid (base de données externe)
+#
+#  Prérequis : un conteneur PostgreSQL DOIT déjà tourner sur votre serveur.
+#  → Installer "PostgreSQL" via Unraid Community Applications ou un autre compose.
+#
+#  Ce fichier ne lance QUE le conteneur Saveez.
+#  Aucun fichier .env requis : toutes les variables sont déclarées ici.
+#
+#  ⚠️  AVANT DE LANCER : remplacez les 4 valeurs CHANGE_ME
+#
+#  Usage :
+#    docker compose -f docker-compose.unraid.yml pull
+#    docker compose -f docker-compose.unraid.yml up -d
+#
+#  Mise à jour :
+#    docker compose -f docker-compose.unraid.yml pull
+#    docker compose -f docker-compose.unraid.yml up -d
+# ==============================================================================
+
+services:
+  saveez:
+    image: ghcr.io/sec844/saveez:latest
+    container_name: saveez
+    restart: unless-stopped
+    environment:
+      # ── Base de données ──────────────────────────────────────────────────────
+      # Indiquez l'IP/hostname de votre PostgreSQL externe.
+      # Sur Unraid : utilisez l'IP de votre serveur (ex: 192.168.1.100)
+      # ou le nom du conteneur PostgreSQL si sur le même réseau Docker.
+      DATABASE_URL: postgresql://CHANGE_ME_DB_USER:CHANGE_ME_DB_PASSWORD@192.168.1.100:5432/saveez_db?schema=public
+
+      # ── Auth ─────────────────────────────────────────────────────────────────
+      # Générer avec : openssl rand -base64 32
+      NEXTAUTH_SECRET: CHANGE_ME_GENERATE_WITH_OPENSSL
+
+      # URL publique de votre instance Saveez (IP ou domaine, sans slash final)
+      NEXTAUTH_URL: http://192.168.1.100:3000   # ← modifier avec votre IP/domaine
+
+      NODE_ENV: production
+
+    ports:
+      - "3000:3000"   # port hôte:port conteneur — changer le port hôte si nécessaire
+
+    # Attend que la base de données soit prête (healthcheck via pg_isready)
+    # Si votre PostgreSQL est externe, vous pouvez retirer ce bloc.
+    # healthcheck:
+    #   test: ["CMD-SHELL", "nc -z 192.168.1.100 5432"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+
+    # Exécute les migrations Prisma au démarrage puis lance l'app
+    command: >
+      sh -c "
+        ./node_modules/.bin/prisma migrate deploy &&
+        node server.js
+      "
