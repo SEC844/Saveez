@@ -14,6 +14,7 @@ export type ObjectifState = {
   error?: string;
   warning?: string;
   success?: boolean;
+  pendingConfirm?: boolean; // true = warning shown, waiting for user to confirm
 } | null;
 
 // ─── Créer un objectif ────────────────────────────────────────────────────────
@@ -30,6 +31,8 @@ export async function createObjectifAction(
   const categorie = (formData.get("categorie") as string)?.trim() || "standard";
   const dateDebutStr = formData.get("dateDebut") as string;
   const dateFinStr = formData.get("dateFin") as string;
+  const forceCreate = formData.get("force") === "1";
+  const compteId = (formData.get("compteId") as string)?.trim() || null;
 
   if (isNaN(montant) || montant <= 0) return { error: "Montant invalide." };
   if (!dateDebutStr) return { error: "Date de début obligatoire." };
@@ -68,7 +71,6 @@ export async function createObjectifAction(
   let warning: string | undefined;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { revenuNet: true, objectifBase: true } });
   if (user?.revenuNet) {
-    // Calculer l'engagement total pendant la période du nouvel objectif
     const moisMilieu = new Date((dateDebut.getTime() + (dateFin?.getTime() ?? dateDebut.getTime() + 30 * 24 * 3600 * 1000)) / 2);
     const { getObjectifBreakdownForMonth } = await import("@/lib/epargne");
     const prevMonth = moisMilieu.getMonth() + 1;
@@ -81,12 +83,17 @@ export async function createObjectifAction(
     }
   }
 
+  // Si avertissement et l'utilisateur n'a pas confirmé, on stoppe ici
+  if (warning && !forceCreate) {
+    return { warning, pendingConfirm: true };
+  }
+
   const moisLabel = dateDebut.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-  const categorieLabel = categorie === "vacances" ? "🏖 Vacances" : categorie === "autre" ? "📌 Autre" : "📊 Standard";
+  const categorieLabel = categorie === "vacances" ? "Vacances" : categorie === "autre" ? "Autre" : "Standard";
 
   await prisma.$transaction([
     prisma.objectif.create({
-      data: { userId, montant, label, dateDebut, dateFin, preset, categorie },
+      data: { userId, montant, label, dateDebut, dateFin, preset, categorie, compteId },
     }),
     prisma.actionLog.create({
       data: {

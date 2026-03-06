@@ -34,6 +34,7 @@ model User {
   imprévus          Imprevu[]
   objectifs         Objectif[]
   actionLogs        ActionLog[]
+  comptes           Compte[]
 
   @@map("users")
 }
@@ -51,6 +52,7 @@ model EpargneMensuelle {
   mois    Int     // 1–12
   montant Float   // Somme réellement mise de côté ce mois-ci (€)
   note    String? // Note libre optionnelle
+  repartition Json? // { standard: X, [compteId]: X } répartition par objectif/compte
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -98,6 +100,8 @@ model Objectif {
   montant   Float   // Montant mensuel cible (€)
   label     String? // Description optionnelle
   categorie String  @default("standard") // "standard" | "vacances" | "autre"
+  compteId  String? // FK → Compte (pour les objectifs vacances / autre)
+  compte    Compte? @relation(fields: [compteId], references: [id], onDelete: SetNull)
 
   dateDebut DateTime  // Début de la période
   dateFin   DateTime? // Fin de la période — null = sans fin
@@ -126,4 +130,24 @@ model ActionLog {
   createdAt DateTime @default(now())
 
   @@map("action_logs")
+}
+
+// ─────────────────────────────────────────────
+// Comptes spéciaux (vacances, autre)
+// ─────────────────────────────────────────────
+
+model Compte {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String  // "vacances" | "autre"
+  label     String  // Nom du compte (ex: "Vacances été 2026")
+  actif     Boolean @default(true)
+
+  objectifs Objectif[]
+
+  createdAt DateTime @default(now())
+
+  @@map("comptes")
 }

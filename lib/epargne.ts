@@ -130,6 +130,7 @@ export function getEcart(montantMis: number, objectif: number): number {
 
 /**
  * Projette l'épargne totale à fin décembre de l'année courante.
+ * Pour chaque mois : utilise le montant réel si saisi, sinon l'objectif du mois.
  */
 export function getProjectionFinAnnee(
   epargneActuelle: number,
@@ -144,9 +145,6 @@ export function getProjectionFinAnnee(
   moisBonis: number;
   moisDeficit: number;
 } {
-  const maintenant = new Date();
-  const moisActuel = maintenant.getMonth() + 1;
-
   let totalCetteAnnee = 0;
   let moisBonis = 0;
   let moisDeficit = 0;
@@ -158,10 +156,12 @@ export function getProjectionFinAnnee(
     );
 
     if (entree) {
+      // Mois saisi : on prend le montant réel
       totalCetteAnnee += entree.montant;
       if (entree.montant >= objectif) moisBonis++;
       else moisDeficit++;
-    } else if (mois > moisActuel) {
+    } else {
+      // Mois non saisi (passé ou futur) : on projette avec l'objectif du mois
       totalCetteAnnee += objectif;
     }
   }

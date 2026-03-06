@@ -12,7 +12,7 @@ export default async function ObjectifsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [objectifs, user] = await Promise.all([
+  const [objectifs, user, comptes] = await Promise.all([
     prisma.objectif.findMany({
       where: { userId: session.user.id },
       orderBy: { dateDebut: "asc" },
@@ -20,6 +20,10 @@ export default async function ObjectifsPage() {
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { revenuNet: true, objectifBase: true },
+    }),
+    prisma.compte.findMany({
+      where: { userId: session.user.id, actif: true },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
@@ -41,7 +45,7 @@ export default async function ObjectifsPage() {
               </p>
             </div>
           </div>
-          <AddObjectifModal revenuNet={user.revenuNet} />
+          <AddObjectifModal revenuNet={user.revenuNet} comptes={comptes} />
         </div>
 
         <ObjectifsList

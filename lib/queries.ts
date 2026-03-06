@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import type { Imprevu, EpargneMensuelle, User, Objectif, ActionLog } from "@prisma/client";
+import type { Imprevu, EpargneMensuelle, User, Objectif, ActionLog, Compte } from "@prisma/client";
 
 export type DashboardData = {
   user: User;
@@ -8,6 +8,7 @@ export type DashboardData = {
   imprévusActifs: Imprevu[];
   imprévusSoldés: Imprevu[];
   objectifs: Objectif[];
+  comptes: Compte[];
   currentYear: number;
   currentMonth: number;
 };
@@ -20,7 +21,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
-  const [user, epargneMensuelles, allImprévus, objectifs] = await Promise.all([
+  const [user, epargneMensuelles, allImprévus, objectifs, comptes] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.epargneMensuelle.findMany({
       where: { userId },
@@ -34,6 +35,10 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       where: { userId },
       orderBy: { dateDebut: "asc" },
     }),
+    prisma.compte.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   if (!user) redirect("/login?error=session");
@@ -44,6 +49,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     imprévusActifs: allImprévus.filter((i) => !i.estSolde),
     imprévusSoldés: allImprévus.filter((i) => i.estSolde),
     objectifs,
+    comptes,
     currentYear,
     currentMonth,
   };
