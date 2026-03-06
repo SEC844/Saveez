@@ -14,6 +14,7 @@ jobs:
   build-push:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -45,17 +46,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Activation du builder multi-plateforme (amd64 + arm64 pour Apple Silicon)
+      # Activation du builder multi-plateforme
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build et push avec cache GitHub Actions (réutilise les layers entre builds)
+      # Sur push main : linux/amd64 uniquement (rapide, suffisant pour usage local)
+      # Sur tag semver : linux/amd64 + linux/arm64 (Apple Silicon, déploiement prod)
+      - name: Determine platforms
+        id: platforms
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+          else
+            echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+          fi
+
+      # Build et push avec cache GitHub Actions
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.platforms.outputs.platforms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: runner
