@@ -15,6 +15,7 @@ import {
 import ThemeToggle from "@/components/ThemeToggle";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { version } from "@/package.json";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
@@ -82,7 +83,7 @@ export default function Sidebar() {
           <ThemeToggle />
         </div>
         <div className="px-3 pb-1">
-          <span className="text-[10px] text-zinc-300 dark:text-zinc-600 font-mono select-none">v1.0.1</span>
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-600 font-mono select-none">v{version}</span>
         </div>
       </div>
     </aside>

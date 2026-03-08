@@ -39,8 +39,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionToken: {
       options: {
         httpOnly: true,
-        sameSite: "strict" as const,
-        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        // Use Secure flag only when the app is served over HTTPS.
+        // On HTTP (e.g. local Unraid without TLS), Secure cookies are
+        // rejected by browsers and the session can never be established.
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
         path: "/",
       },
     },

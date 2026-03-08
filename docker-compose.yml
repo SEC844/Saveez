@@ -1,51 +1,49 @@
+# ==============================================================================
+#  docker-compose.yml — Déploiement Saveez (Unraid / serveur avec PostgreSQL externe)
+#
+#  Prérequis : un conteneur PostgreSQL doit déjà tourner sur votre serveur.
+#  Aucun fichier .env requis — toutes les variables sont déclarées ici.
+#
+#  ⚠️  AVANT DE LANCER : remplacez les valeurs marquées  ← CHANGE_ME
+#
+#  Usage :
+#    docker compose pull
+#    docker compose up -d
+#
+#  Mise à jour :
+#    docker compose pull && docker compose up -d
+# ==============================================================================
+
 services:
-  # --------------------------------------------------------
-  # PostgreSQL database
-  # --------------------------------------------------------
-  db:
-    image: postgres:16-alpine
-    container_name: epargne_db
+  saveez:
+    image: ghcr.io/sec844/saveez:latest
+    container_name: saveez
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-epargne_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?The POSTGRES_PASSWORD env var is required}
-      POSTGRES_DB: ${POSTGRES_DB:-epargne_db}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432" # expose only locally — remove in production
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-epargne_user} -d ${POSTGRES_DB:-epargne_db}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # --------------------------------------------------------
-  # Next.js application
-  # --------------------------------------------------------
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runner # jump straight to the production stage
-    container_name: epargne_app
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-epargne_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-epargne_db}?schema=public
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # ── Base de données ─────────────────────────────────────────────────────
+      # ⚠️  Renseignez ces 5 variables — DATABASE_URL est construit automatiquement.
+
+      DB_HOST: 192.168.1.100 # ← CHANGE_ME  IP ou hostname de votre PostgreSQL
+      DB_PORT: 5432 # Port PostgreSQL (défaut : 5432)
+      DB_USER: saveez_user # ← CHANGE_ME  utilisateur PostgreSQL
+      DB_PASSWORD: CHANGE_ME_DB_PASSWORD # ← CHANGE_ME  mot de passe PostgreSQL
+      DB_NAME: saveez_db # Nom de la base de données
+
+      # ── Auth ─────────────────────────────────────────────────────────────────
+      # Générer avec : openssl rand -base64 32
+      NEXTAUTH_SECRET: CHANGE_ME_GENERATE_WITH_OPENSSL # ← CHANGE_ME
+      NEXTAUTH_URL: http://192.168.1.100:3000 # ← CHANGE_ME  URL publique
+
+      # ── Application ──────────────────────────────────────────────────────────────
       NODE_ENV: production
-    ports:
-      - "3000:3000"
-    # Run Prisma migrations at startup before launching Next.js
-    command: >
-      sh -c "
-        ./node_modules/.bin/prisma migrate deploy &&
-        node server.js
-      "
 
-volumes:
-  postgres_data:
+      # Niveau de journalisation : error | warn | info | verbose | debug
+      LOG_LEVEL: info
+
+    ports:
+      - "3000:3000" # Format : "PORT_HOTE:3000" — changer PORT_HOTE si nécessaire
+
+    # scripts/start.js construit DATABASE_URL à partir des vars DB_* puis lance
+    # les migrations Prisma et le serveur Next.js. Aucun problème d'interpolation.
+    command: [ "node", "scripts/start.js" ]

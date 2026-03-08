@@ -130,7 +130,12 @@ export default function OnboardingModal({ userName }: OnboardingModalProps) {
                 setSaving(false);
                 return;
             }
-            await completeOnboardingAction();
+            const done = await completeOnboardingAction();
+            if (done?.error) {
+                setError(done.error);
+                setSaving(false);
+                return;
+            }
             // page will rerender via revalidatePath("/")
         } catch {
             setError("Une erreur est survenue. Veuillez réessayer.");

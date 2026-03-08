@@ -18,52 +18,66 @@ export async function updateSettingsAction(
   _prev: SettingsState,
   formData: FormData
 ): Promise<SettingsState> {
-  const userId = await getAuthUserId();
+  try {
+    const userId = await getAuthUserId();
 
-  const objectifBase = parseFloat(formData.get("objectifBase") as string);
-  const fondsSecurite = parseFloat(formData.get("fondsSecurite") as string);
-  const epargneActuelle = parseFloat(formData.get("epargneActuelle") as string);
-  const nameRaw = formData.has("name") ? (formData.get("name") as string)?.trim() || null : undefined;
-  const revenuNetRaw = formData.get("revenuNet") as string;
-  const revenuNet = revenuNetRaw ? parseFloat(revenuNetRaw) : null;
+    const objectifBase = parseFloat(formData.get("objectifBase") as string);
+    const fondsSecurite = parseFloat(formData.get("fondsSecurite") as string);
+    const epargneActuelle = parseFloat(formData.get("epargneActuelle") as string);
+    const nameRaw = formData.has("name") ? (formData.get("name") as string)?.trim() || null : undefined;
+    const revenuNetRaw = formData.get("revenuNet") as string;
+    const revenuNet = revenuNetRaw ? parseFloat(revenuNetRaw) : null;
 
-  if (isNaN(objectifBase) || objectifBase < 0)
-    return { error: "Objectif mensuel invalide." };
-  if (isNaN(fondsSecurite) || fondsSecurite < 0)
-    return { error: "Fonds de sécurité invalide." };
-  if (isNaN(epargneActuelle) || epargneActuelle < 0)
-    return { error: "Épargne actuelle invalide." };
-  if (revenuNet !== null && (isNaN(revenuNet) || revenuNet < 0))
-    return { error: "Revenu net invalide." };
+    if (isNaN(objectifBase) || objectifBase < 0)
+      return { error: "Objectif mensuel invalide." };
+    if (isNaN(fondsSecurite) || fondsSecurite < 0)
+      return { error: "Fonds de sécurité invalide." };
+    if (isNaN(epargneActuelle) || epargneActuelle < 0)
+      return { error: "Épargne actuelle invalide." };
+    if (revenuNet !== null && (isNaN(revenuNet) || revenuNet < 0))
+      return { error: "Revenu net invalide." };
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { objectifBase, fondsSecurite, epargneActuelle, ...(nameRaw !== undefined ? { name: nameRaw } : {}), revenuNet },
-    }),
-    prisma.actionLog.create({
-      data: {
-        userId,
-        type: "update_settings",
-        label: "Paramètres mis à jour",
-      },
-    }),
-  ]);
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { objectifBase, fondsSecurite, epargneActuelle, ...(nameRaw !== undefined ? { name: nameRaw } : {}), revenuNet },
+      }),
+      prisma.actionLog.create({
+        data: {
+          userId,
+          type: "update_settings",
+          label: "Paramètres mis à jour",
+        },
+      }),
+    ]);
 
-  revalidatePath("/");
-  revalidatePath("/parametres");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/parametres");
+    return { success: true };
+  } catch (err) {
+    // Log the real error to container stdout so it's visible in `docker logs saveez`
+    console.error("[updateSettingsAction] Erreur:", err);
+    return {
+      error: err instanceof Error ? err.message : "Erreur serveur inconnue.",
+    };
+  }
 }
 
 // ─── Marquer l'onboarding comme terminé ──────────────────────────────────────
 
-export async function completeOnboardingAction(): Promise<void> {
-  const userId = await getAuthUserId();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { onboardingDone: true },
-  });
-  revalidatePath("/");
+export async function completeOnboardingAction(): Promise<{ error?: string }> {
+  try {
+    const userId = await getAuthUserId();
+    await prisma.user.update({
+      where: { id: userId },
+      data: { onboardingDone: true },
+    });
+    revalidatePath("/");
+    return {};
+  } catch (err) {
+    console.error("[completeOnboardingAction] Erreur:", err);
+    return { error: err instanceof Error ? err.message : "Erreur serveur inconnue." };
+  }
 }
 
 // ─── Réinitialiser toutes les données utilisateur ───────────────────────────
