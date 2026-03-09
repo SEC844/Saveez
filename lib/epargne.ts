@@ -59,9 +59,10 @@ export function getRemboursementActif(
   annee: number,
   mois: number
 ): number {
+  // On se base uniquement sur la plage de dates, pas sur estSolde.
+  // Un imprevu solde doit quand meme compter pour les mois passes ou il etait actif.
   return imprévus
     .filter((imp) => {
-      if (imp.estSolde) return false;
       const debut = imp.anneeDebut * 12 + imp.moisDebut;
       const fin = debut + imp.dureeRemboursement - 1;
       const actuel = annee * 12 + mois;

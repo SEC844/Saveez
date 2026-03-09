@@ -222,6 +222,14 @@ export default async function DashboardPage() {
             if (oc) objCompteMois[c.id] = oc.montant;
           }
 
+          // Imprevus actifs pendant CE mois (plage de dates, inclut les soldes)
+          const imprevusPourMois = allImprévus.filter((imp) => {
+            const debut = imp.anneeDebut * 12 + imp.moisDebut;
+            const fin = debut + imp.dureeRemboursement - 1;
+            const actuel = currentYear * 12 + m;
+            return actuel >= debut && actuel <= fin;
+          });
+
           return {
             annee: currentYear,
             mois: m,
@@ -231,6 +239,7 @@ export default async function DashboardPage() {
             objectif: obj,
             objectifStandard: breakdownMois.standard,
             objectifsComptes: objCompteMois,
+            imprevusPourMois,
           };
         });
 

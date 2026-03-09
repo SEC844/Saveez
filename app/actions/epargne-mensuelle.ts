@@ -43,11 +43,10 @@ export async function upsertEpargneMensuelleAction(
     if (val !== null) repartitionRaw[compte.id] = parseFloat(val as string) || 0;
   }
 
-  // Imprévus actifs — chaque ligne du formulaire est `repartition_imprevu_${id}`
-  // On stocke chaque montant individuellement pour respecter l'intention de l'utilisateur.
-  // (L'ancien format utilisait une clé agrégée "imprevus" distribuée en FIFO — déprécié)
+  // Tous les imprevus (y compris soldes) : on preserve leur repartition pour les mois passes
+  // Le filtre estSolde est volontairement absent ici.
   const imprevusActifsPourRep = await prisma.imprevu.findMany({
-    where: { userId, estSolde: false },
+    where: { userId },
   });
   for (const imp of imprevusActifsPourRep) {
     const val = formData.get(`repartition_imprevu_${imp.id}`);

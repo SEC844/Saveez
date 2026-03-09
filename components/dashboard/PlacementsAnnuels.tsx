@@ -16,9 +16,10 @@ interface EntreeMois {
   note?: string | null;
   repartition?: Record<string, number> | null;
   objectif: number;
-  // Objectifs propres a ce mois pour la modale d'edition
+  // Objectifs et imprevus propres a ce mois pour la modale d'edition
   objectifStandard?: number;
   objectifsComptes?: Record<string, number>;
+  imprevusPourMois?: Imprevu[];
 }
 
 interface PlacementsAnnuelsProps {
@@ -38,6 +39,7 @@ interface EditState {
   repartition?: Record<string, number>;
   objectifStandard?: number;
   objectifsComptes?: Record<string, number>;
+  imprevusPourMois?: Imprevu[];
 }
 
 export default function PlacementsAnnuels({
@@ -77,9 +79,10 @@ export default function PlacementsAnnuels({
       montant: row.entree?.montant,
       note: row.entree?.note ?? undefined,
       repartition: rep !== null ? rep : undefined,
-      // Utilise les objectifs specifiques au mois selectionne
       objectifStandard: row.entree?.objectifStandard,
       objectifsComptes: row.entree?.objectifsComptes,
+      // Imprevus actifs pendant ce mois (incl. soldes) pour coherence avec objectif affiché
+      imprevusPourMois: row.entree?.imprevusPourMois,
     });
     setEditOpen(true);
   }
@@ -217,13 +220,13 @@ export default function PlacementsAnnuels({
         </table>
       </div>
 
-      {/* Modale d'edition controlee — utilise les objectifs du mois selectionne */}
+      {/* Modale d'edition : utilise les objectifs ET imprevus du mois selectionne */}
       {editState && (
         <AddEpargneModal
           comptesActifs={comptesActifs}
           objectifStandard={editState.objectifStandard ?? objectifStandard}
           objectifsComptes={editState.objectifsComptes ?? objectifsComptes}
-          imprevusActifs={imprevusActifs}
+          imprevusActifs={editState.imprevusPourMois ?? imprevusActifs}
           editOpen={editOpen}
           onEditOpenChange={setEditOpen}
           initialAnnee={editState.annee}
