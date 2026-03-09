@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Connexion – Épargne",
+  title: "Connexion – Saveez",
 };
 
 export default async function LoginPage({

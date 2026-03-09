@@ -2,11 +2,11 @@
 
 import { useActionState, useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createCompteAction } from "@/app/actions/compte";
+import { updateCompteAction } from "@/app/actions/compte";
 import { Loader2, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Compte } from "@prisma/client";
 
-// Palette compacte de couleurs predefinies
 const COULEURS = [
   { hex: "#8B5CF6", name: "Violet" },
   { hex: "#3B82F6", name: "Bleu" },
@@ -18,62 +18,50 @@ const COULEURS = [
   { hex: "#F97316", name: "Orange" },
 ];
 
-interface AddCompteModalProps {
+interface EditCompteModalProps {
+  compte: Compte;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultType: "vacances" | "autre";
 }
 
-export default function AddCompteModal({ open, onOpenChange, defaultType }: AddCompteModalProps) {
-  const [state, action, isPending] = useActionState(createCompteAction, null);
+export default function EditCompteModal({ compte, open, onOpenChange }: EditCompteModalProps) {
+  const [state, action, isPending] = useActionState(updateCompteAction, null);
+  const [label, setLabel] = useState(compte.label);
+  const [couleur, setCouleur] = useState(compte.couleur || "#8B5CF6");
 
-  const [label, setLabel] = useState("");
-  const [soldeInitial, setSoldeInitial] = useState("");
-  const [couleur, setCouleur] = useState(COULEURS[0].hex);
-
-  // Reset quand la modal s'ouvre
   useEffect(() => {
     if (open) {
-      setLabel("");
-      setSoldeInitial("");
-      setCouleur(COULEURS[0].hex);
+      setLabel(compte.label);
+      setCouleur(compte.couleur || "#8B5CF6");
     }
-  }, [open]);
+  }, [open, compte]);
 
   useEffect(() => {
     if (state?.success) {
-      const timeout = setTimeout(() => {
-        onOpenChange(false);
-      }, 700);
-      return () => clearTimeout(timeout);
+      const t = setTimeout(() => onOpenChange(false), 700);
+      return () => clearTimeout(t);
     }
   }, [state, onOpenChange]);
-
-  const typeLabel = defaultType === "vacances" ? "Vacances" : "Autre";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-zinc-900 dark:text-white">
-            Nouveau compte · {typeLabel}
-          </DialogTitle>
+          <DialogTitle className="text-zinc-900 dark:text-white">Modifier le compte</DialogTitle>
         </DialogHeader>
 
         <form action={action} className="space-y-4 mt-2">
-          <input type="hidden" name="type" value={defaultType} />
+          <input type="hidden" name="compteId" value={compte.id} />
           <input type="hidden" name="couleur" value={couleur} />
 
-          {/* Nom du compte */}
           <div>
-            <label htmlFor="label" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+            <label htmlFor="label-edit" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
               Nom du compte
             </label>
             <input
-              id="label"
+              id="label-edit"
               name="label"
               type="text"
-              placeholder="Ex: Vacances ete 2026"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
@@ -82,30 +70,8 @@ export default function AddCompteModal({ open, onOpenChange, defaultType }: AddC
             />
           </div>
 
-          {/* Solde initial (optionnel) */}
           <div>
-            <label htmlFor="soldeInitial" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Solde initial{" "}
-              <span className="text-zinc-400 font-normal">(optionnel — argent deja de cote)</span>
-            </label>
-            <input
-              id="soldeInitial"
-              name="soldeInitial"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0"
-              value={soldeInitial}
-              onChange={(e) => setSoldeInitial(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-            />
-          </div>
-
-          {/* Selecteur de couleur compact */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              Couleur
-            </label>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">Couleur</label>
             <div className="flex items-center gap-2.5">
               {COULEURS.map((c) => (
                 <button
@@ -124,14 +90,12 @@ export default function AddCompteModal({ open, onOpenChange, defaultType }: AddC
             </div>
           </div>
 
-          {/* Erreur */}
           {state?.error && (
             <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
               <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p>
             </div>
           )}
 
-          {/* Succes */}
           {state?.success && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -139,24 +103,16 @@ export default function AddCompteModal({ open, onOpenChange, defaultType }: AddC
               className="flex items-center gap-2 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
             >
               <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
-              <p className="text-xs text-green-600 dark:text-green-400">Compte cree !</p>
+              <p className="text-xs text-green-600 dark:text-green-400">Modifie !</p>
             </motion.div>
           )}
 
-          {/* Bouton submit */}
           <button
             type="submit"
             disabled={isPending}
             className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Creation...
-              </>
-            ) : (
-              "Creer le compte"
-            )}
+            {isPending ? <><Loader2 size={16} className="animate-spin" /> Enregistrement...</> : "Enregistrer"}
           </button>
         </form>
       </DialogContent>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getTransactionsCompte } from "@/app/actions/compte";
-import { Clock, ArrowDownLeft, ArrowRightLeft } from "lucide-react";
+import { Clock, ArrowDownLeft, ArrowRightLeft, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Transaction {
@@ -12,6 +12,7 @@ interface Transaction {
   montant: number;
   note: string | null;
   createdAt: Date;
+  compteSourceId: string | null;
   compteSource: { label: string } | null;
   compteDestination: { label: string } | null;
 }
@@ -28,13 +29,14 @@ export default function CompteHistoriqueModal({ compteId, compteLabel, trigger }
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (open && transactions.length === 0) {
+    if (open) {
       setLoading(true);
+      setTransactions([]);
       getTransactionsCompte(compteId)
         .then(setTransactions)
         .finally(() => setLoading(false));
     }
-  }, [open, compteId, transactions.length]);
+  }, [open, compteId]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -63,12 +65,20 @@ export default function CompteHistoriqueModal({ compteId, compteLabel, trigger }
           )}
 
           {!loading && transactions.map((t) => {
-            const isRetrait = t.type === "retrait";
-            const isSource = t.compteSource && compteId === t.compteSource.label;
-            const montantSign = isRetrait || !isSource ? "-" : "+";
-            const montantColor = isRetrait || !isSource
+            const isRetrait = t.type === "retrait" || t.type === "retrait_repartition";
+            const isDepot = t.type === "depot_repartition";
+            const isSource = t.compteSourceId === compteId;
+            // Pour un transfert, si ce compte est la source → sortie
+            const isSortie = isRetrait || (t.type === "transfert" && isSource);
+            const montantSign = isSortie ? "-" : "+";
+            const montantColor = isSortie
               ? "text-red-600 dark:text-red-400"
               : "text-green-600 dark:text-green-400";
+
+            let typeLabel = "Transfert";
+            if (t.type === "retrait") typeLabel = "Retrait";
+            if (t.type === "retrait_repartition") typeLabel = "Retrait (repartition)";
+            if (t.type === "depot_repartition") typeLabel = "Depot repartition";
 
             return (
               <motion.div
@@ -80,33 +90,28 @@ export default function CompteHistoriqueModal({ compteId, compteLabel, trigger }
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 bg-white dark:bg-zinc-800 rounded-lg">
-                      {isRetrait ? (
+                      {isDepot ? (
+                        <ArrowUpRight size={16} className="text-green-600 dark:text-green-400" />
+                      ) : isRetrait ? (
                         <ArrowDownLeft size={16} className="text-red-600 dark:text-red-400" />
                       ) : (
                         <ArrowRightLeft size={16} className="text-blue-600 dark:text-blue-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 dark:text-white mb-0.5">
-                        {isRetrait ? "Retrait" : "Transfert"}
-                      </p>
-                      {!isRetrait && (
+                      <p className="text-sm font-medium text-zinc-900 dark:text-white mb-0.5">{typeLabel}</p>
+                      {t.type === "transfert" && (
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
                           {isSource ? `Vers ${t.compteDestination?.label}` : `De ${t.compteSource?.label}`}
                         </p>
                       )}
                       {t.note && (
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
-                          {t.note}
-                        </p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">{t.note}</p>
                       )}
                       <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                         {new Date(t.createdAt).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
+                          day: "numeric", month: "long", year: "numeric",
+                          hour: "2-digit", minute: "2-digit",
                         })}
                       </p>
                     </div>

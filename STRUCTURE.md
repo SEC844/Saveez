@@ -1,6 +1,6 @@
 # 📋 STRUCTURE.md — Référentiel Technique Saveez
 
-> **Version :** 1.0.4.1  
+> **Version :** 1.0.5  
 > **Date :** Mars 2026  
 > **Repo :** https://github.com/SEC844/Saveez.git  
 > **Branches :** `dev` (développement) → `main` (production)
@@ -9,7 +9,29 @@
 
 ## 🆕 CHANGELOG
 
-### v1.0.4.1 (Mars 2026) — Système de Transactions & Améliorations UX
+### v1.0.5 (Mars 2026) — Corrections UX Comptes & Imprévus
+**Corrections de bugs :**
+- 🐛 **Imprévus répartition** : les lignes individuelles `repartition_imprevu_${id}` du formulaire n'étaient pas lues par le serveur (seulement `repartition_imprevus` global). Fix : agrégation des lignes individuelles avant stockage.
+- 🐛 **Solde initial compte** : créer un compte avec un solde initial déduisait incorrectement l'épargne standard. Fix : `createCompteAction` incrémente désormais `User.epargneActuelle` lors d'un solde initial > 0.
+- 🐛 **Historique compte** : le modal ne voyait que retraits/transferts mais pas les dépôts via répartition. Fix : création de `Transaction` (type `depot_repartition` / `retrait_repartition`) lors de chaque mise à jour de solde par répartition.
+- 🐛 **Signe des transactions** : détermination source/destination basée sur `compteSourceId` et non sur le label du compte.
+
+**Nouvelles fonctionnalités UX :**
+- ✨ **Dropdown "Nouveau compte"** : clic sur le bouton ouvre un menu déroulant (Vacances / Autre) avant d'ouvrir le modal de création. Le type est pré-sélectionné.
+- ✨ **Color picker compact** : les pastilles de couleur sont maintenant de petits cercles compacts (w-6 h-6) au lieu de grandes cases.
+- ✨ **Menu 3 points** (`⋯`) sur chaque carte de compte : permet de Modifier (nom + couleur via `EditCompteModal`) ou de Activer/Désactiver le compte.
+- ✨ **Couleur du compte sur les objectifs** : dans la page Objectifs, le badge de type d'un objectif lié à un compte affiche désormais la couleur du compte concerné.
+- ✨ **Suppression de "Comptes spéciaux" des paramètres** : la fonctionnalité est désormais uniquement gérée depuis la page Comptes.
+- ✨ **ActionLog pour retraits/transferts** : les opérations sur comptes sont maintenant tracées dans l'historique global.
+
+**Technique :**
+- Nouveaux server actions : `updateCompteAction` (modifier nom/couleur d'un compte)
+- Nouveau composant : `EditCompteModal.tsx`
+- `AddCompteModal.tsx` refactorisé : accept `open/onOpenChange/defaultType` en props (plus de trigger interne)
+- `ComptesClient.tsx` refactorisé : dropdown `NewCompteDropdown` + menu `CompteMenu` avec `useTransition`
+- `CompteHistoriqueModal.tsx` : rechargement à chaque ouverture, gestion des nouveaux types de transactions
+- `ObjectifsList.tsx` : reçoit `comptes?: Compte[]`, badge de type coloré par compte
+- Aucune migration DB nécessaire (seuls les valeurs des `String` types changent)
 **Nouvelles fonctionnalités :**
 - ✅ **Système de transactions** : Table `Transaction` pour tracer retraits/transferts entre comptes
 - ✅ **Couleurs personnalisées** : Chaque compte peut avoir sa propre couleur (champ `couleur` dans Compte)

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import type { Objectif } from "@prisma/client";
+import type { Objectif, Compte } from "@prisma/client";
 import { deleteObjectifAction } from "@/app/actions/objectif";
 import { Trash2, CalendarClock, CheckCircle2, Clock, Target, Sun, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface ObjectifsListProps {
   objectifs: Objectif[];
   objectifBase: number;
   revenuNet: number | null;
+  comptes?: Compte[];
 }
 
 function formatDateRange(debut: Date, fin: Date | null) {
@@ -30,19 +31,30 @@ function getStatus(objectif: Objectif): "active" | "future" | "past" {
   return "active";
 }
 
-function getCategorieLabel(cat: string | null) {
-  if (cat === "vacances") return { label: "Vacances", icon: Sun, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" };
-  if (cat === "autre") return { label: "Autre", icon: Layers, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" };
+function getCategorieLabel(cat: string | null, couleurCompte?: string | null) {
+  if (cat === "vacances") {
+    if (couleurCompte) {
+      return { label: "Vacances", icon: Sun, inlineColor: couleurCompte };
+    }
+    return { label: "Vacances", icon: Sun, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" };
+  }
+  if (cat === "autre") {
+    if (couleurCompte) {
+      return { label: "Autre", icon: Layers, inlineColor: couleurCompte };
+    }
+    return { label: "Autre", icon: Layers, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" };
+  }
   return { label: "Standard", icon: Target, color: "text-zinc-500 bg-zinc-100 dark:bg-zinc-800" };
 }
 
-function ObjectifCard({ objectif, delay }: { objectif: Objectif; delay: number }) {
+function ObjectifCard({ objectif, delay, comptes }: { objectif: Objectif; delay: number; comptes?: Compte[] }) {
   const [isPending, startTransition] = useTransition();
   const [deleted, setDeleted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const status = getStatus(objectif);
-  const { label: catLabel, icon: CatIcon, color: catColor } = getCategorieLabel(objectif.categorie);
+  const compteAssocie = comptes?.find((c) => c.id === objectif.compteId);
+  const { label: catLabel, icon: CatIcon, color: catColor, inlineColor } = getCategorieLabel(objectif.categorie, compteAssocie?.couleur);
 
   function handleDelete() {
     setDeleted(true);
@@ -80,10 +92,20 @@ function ObjectifCard({ objectif, delay }: { objectif: Objectif; delay: number }
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2 flex-wrap">
             {/* Type badge */}
-            <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", catColor)}>
-              <CatIcon size={10} />
-              {catLabel}
-            </span>
+            {inlineColor ? (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ color: inlineColor, backgroundColor: `${inlineColor}20` }}
+              >
+                <CatIcon size={10} />
+                {catLabel}
+              </span>
+            ) : (
+              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", catColor)}>
+                <CatIcon size={10} />
+                {catLabel}
+              </span>
+            )}
 
             {/* Statut */}
             {status === "active" && (
@@ -134,7 +156,7 @@ function ObjectifCard({ objectif, delay }: { objectif: Objectif; delay: number }
   );
 }
 
-export default function ObjectifsList({ objectifs, objectifBase }: ObjectifsListProps) {
+export default function ObjectifsList({ objectifs, objectifBase, comptes }: ObjectifsListProps) {
   if (objectifs.length === 0) {
     return (
       <div className="space-y-6">
@@ -188,7 +210,7 @@ export default function ObjectifsList({ objectifs, objectifBase }: ObjectifsList
             En cours ({actifs.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {actifs.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} />)}
+            {actifs.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} comptes={comptes} />)}
           </div>
         </section>
       )}
@@ -200,7 +222,7 @@ export default function ObjectifsList({ objectifs, objectifBase }: ObjectifsList
             À venir ({aVenir.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {aVenir.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} />)}
+            {aVenir.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} comptes={comptes} />)}
           </div>
         </section>
       )}
@@ -212,7 +234,7 @@ export default function ObjectifsList({ objectifs, objectifBase }: ObjectifsList
             Terminés ({passes.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {passes.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} />)}
+            {passes.map((o, i) => <ObjectifCard key={o.id} objectif={o} delay={i * 0.05} comptes={comptes} />)}
           </div>
         </section>
       )}

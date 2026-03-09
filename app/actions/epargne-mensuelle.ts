@@ -36,18 +36,29 @@ export async function upsertEpargneMensuelleAction(
   const standardRaw = formData.get("repartition_standard");
   if (standardRaw !== null) repartitionRaw["standard"] = parseFloat(standardRaw as string) || 0;
 
-  // Champ imprévus global
-  const imprevusRaw = formData.get("repartition_imprevus");
-  if (imprevusRaw !== null && imprevusRaw !== "") {
-    repartitionRaw["imprevus"] = parseFloat(imprevusRaw as string) || 0;
-  }
-
   // Comptes actifs de l'utilisateur
   const comptes = await prisma.compte.findMany({ where: { userId, actif: true } });
   for (const compte of comptes) {
     const val = formData.get(`repartition_${compte.id}`);
     if (val !== null) repartitionRaw[compte.id] = parseFloat(val as string) || 0;
   }
+
+  // Imprévus actifs — chaque ligne du formulaire est `repartition_imprevu_${id}`
+  // On les somme pour alimenter la clé "imprevus" utilisée par le moteur FIFO
+  const imprevusActifsPourRep = await prisma.imprevu.findMany({
+    where: { userId, estSolde: false },
+  });
+  let totalImprevusRaw = 0;
+  for (const imp of imprevusActifsPourRep) {
+    const val = formData.get(`repartition_imprevu_${imp.id}`);
+    if (val !== null) totalImprevusRaw += parseFloat(val as string) || 0;
+  }
+  // Compatibilité avec l'ancien champ unique "repartition_imprevus"
+  const imprevusRawLegacy = formData.get("repartition_imprevus");
+  if (totalImprevusRaw === 0 && imprevusRawLegacy !== null && imprevusRawLegacy !== "") {
+    totalImprevusRaw = parseFloat(imprevusRawLegacy as string) || 0;
+  }
+  if (totalImprevusRaw > 0) repartitionRaw["imprevus"] = totalImprevusRaw;
 
   const hasRepartition = Object.keys(repartitionRaw).length > 0;
   const repartition = hasRepartition ? repartitionRaw : undefined;
@@ -83,13 +94,28 @@ export async function upsertEpargneMensuelleAction(
     update: { montant, note, repartition, updatedAt: new Date() },
   });
 
-  // ── Mise à jour des soldes des comptes ────────────────────────────────────
+  // ── Mise à jour des soldes des comptes + enregistrement dans l'historique ──
+  const moisLabelTx = new Date(annee, mois - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   for (const [compteId, delta] of Object.entries(deltaRepartition)) {
     if (delta !== 0) {
-      await prisma.compte.update({
-        where: { id: compteId },
-        data: { solde: { increment: delta } },
-      });
+      const txType = delta > 0 ? "depot_repartition" : "retrait_repartition";
+      await prisma.$transaction([
+        prisma.compte.update({
+          where: { id: compteId },
+          data: { solde: { increment: delta } },
+        }),
+        prisma.transaction.create({
+          data: {
+            userId,
+            type: txType,
+            montant: Math.abs(delta),
+            note: `Répartition ${moisLabelTx}`,
+            ...(delta > 0
+              ? { compteDestinationId: compteId }
+              : { compteSourceId: compteId }),
+          },
+        }),
+      ]);
     }
   }
 

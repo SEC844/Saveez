@@ -52,6 +52,7 @@ export default async function ObjectifsPage() {
           objectifs={objectifs}
           objectifBase={user.objectifBase}
           revenuNet={user.revenuNet}
+          comptes={comptes}
         />
       </div>
     </DashboardShell>

@@ -35,8 +35,19 @@ export async function createCompteAction(
         return { error: "Le solde initial ne peut pas être négatif." };
     }
 
-    await prisma.compte.create({
-        data: { userId, type, label, couleur, solde: soldeInitial, actif: true },
+    // Le solde initial représente de l'argent déjà existant (ex: virement sur
+    // un compte bancaire spécial). On doit l'ajouter à epargneActuelle pour que
+    // le calcul epargneStandard = epargneActuelle - totalComptesActifs reste cohérent.
+    await prisma.$transaction(async (tx) => {
+        await tx.compte.create({
+            data: { userId, type, label, couleur, solde: soldeInitial, actif: true },
+        });
+        if (soldeInitial > 0) {
+            await tx.user.update({
+                where: { id: userId },
+                data: { epargneActuelle: { increment: soldeInitial } },
+            });
+        }
     });
 
     revalidatePath("/parametres");
@@ -137,6 +148,14 @@ export async function retraitCompteAction(
                 compteSourceId: compteId,
             },
         }),
+        prisma.actionLog.create({
+            data: {
+                userId,
+                type: "retrait_compte",
+                label: `Retrait de ${montant.toLocaleString("fr-FR")} € sur « ${compte.label} »${note ? ` — ${note}` : ""}`,
+                montant,
+            },
+        }),
     ]);
 
     revalidatePath("/comptes");
@@ -192,9 +211,46 @@ export async function transfertCompteAction(
                 compteDestinationId,
             },
         }),
+        prisma.actionLog.create({
+            data: {
+                userId,
+                type: "transfert_compte",
+                label: `Transfert de ${montant.toLocaleString("fr-FR")} € : « ${compteSource.label} » → « ${compteDestination.label} »${note ? ` — ${note}` : ""}`,
+                montant,
+            },
+        }),
     ]);
 
     revalidatePath("/comptes");
+    revalidatePath("/");
+    return { success: true };
+}
+
+// ─── Modifier le nom/couleur d'un compte ─────────────────────────────────────
+
+export async function updateCompteAction(
+    _prev: CompteState,
+    formData: FormData
+): Promise<CompteState> {
+    const userId = await getAuthUserId();
+
+    const compteId = (formData.get("compteId") as string)?.trim();
+    const label = (formData.get("label") as string)?.trim();
+    const couleur = (formData.get("couleur") as string)?.trim() || "#8B5CF6";
+
+    if (!compteId) return { error: "Compte non spécifié." };
+    if (!label || label.length < 2) return { error: "Veuillez saisir un nom pour ce compte." };
+
+    const compte = await prisma.compte.findUnique({ where: { id: compteId } });
+    if (!compte || compte.userId !== userId) return { error: "Introuvable." };
+
+    await prisma.compte.update({
+        where: { id: compteId },
+        data: { label, couleur },
+    });
+
+    revalidatePath("/comptes");
+    revalidatePath("/objectifs");
     revalidatePath("/");
     return { success: true };
 }
@@ -220,8 +276,9 @@ export async function getTransactionsCompte(compteId: string) {
             compteDestination: { select: { label: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: 50, // Limiter à 50 transactions
+        take: 50,
     });
 
+    // Ajouter compteSourceId explicitement (déjà dans transaction)
     return transactions;
 }

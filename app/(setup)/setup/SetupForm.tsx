@@ -34,7 +34,7 @@ export default function SetupForm() {
             <span className="text-2xl">💰</span>
           </motion.div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white tracking-tight">
-            Bienvenue sur Épargne
+            Bienvenue sur Saveez
           </h1>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
             C&apos;est votre première visite. Créez votre compte personnel

@@ -35,7 +35,7 @@ export default function LoginForm() {
             <span className="text-2xl">💰</span>
           </motion.div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white tracking-tight">
-            Épargne
+            Saveez
           </h1>
           <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
             Connectez-vous à votre espace
