@@ -16,7 +16,8 @@ import AddEpargneModal from "@/components/dashboard/AddEpargneModal";
 import AddImprevuModal from "@/components/dashboard/AddImprevuModal";
 import WhatIfModal from "@/components/dashboard/WhatIfModal";
 import OnboardingModal from "@/components/dashboard/OnboardingModal";
-import { Wallet, Target, TrendingUp, ArrowUpDown, History } from "lucide-react";
+import PlacementsAnnuels from "@/components/dashboard/PlacementsAnnuels";
+import { Wallet, Target, TrendingUp, ArrowUpDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
@@ -195,51 +196,37 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Historique récent */}
-      {epargneMensuelles.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2 mb-3">
-            <History size={14} />
-            Historique récent
-          </h2>
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Mois</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Montant</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Objectif</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Écart</th>
-                </tr>
-              </thead>
-              <tbody>
-                {epargneMensuelles.slice(0, 6).map((e, i) => {
-                  const obj = getObjectifDynamique(user.objectifBase, allImprévus, e.annee, e.mois, objectifs);
-                  const diff = getEcart(e.montant, obj);
-                  return (
-                    <tr key={e.id} className={i < 5 ? "border-b border-zinc-50 dark:border-zinc-800/50" : ""}>
-                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300 capitalize">
-                        {new Date(e.annee, e.mois - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-zinc-900 dark:text-white">
-                        {e.montant.toLocaleString("fr-FR")} €
-                      </td>
-                      <td className="px-4 py-3 text-right text-zinc-400 dark:text-zinc-500">
-                        {obj.toLocaleString("fr-FR")} €
-                      </td>
-                      <td className={`px-4 py-3 text-right font-medium ${diff >= 0 ? "text-emerald-500" : "text-red-400"}`}>
-                        {diff >= 0 ? "+" : ""}{diff.toLocaleString("fr-FR")} €
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* Placements annuels — tableau interactif année en cours */}
+      {(() => {
+        // Construire les EntreeMois pour l'année courante
+        const entreesAnnee = Array.from({ length: 12 }, (_, i) => {
+          const m = i + 1;
+          const e = epargneMensuelles.find((x) => x.annee === currentYear && x.mois === m);
+          const obj = getObjectifDynamique(user.objectifBase, allImprévus, currentYear, m, objectifs);
+          const rep = e?.repartition as Record<string, number> | null | undefined;
+          return {
+            annee: currentYear,
+            mois: m,
+            montant: e?.montant,
+            note: e?.note,
+            repartition: rep ?? null,
+            objectif: obj,
+          };
+        });
 
-      {/* Empty state */}
+        return (
+          <PlacementsAnnuels
+            annee={currentYear}
+            entrees={entreesAnnee}
+            comptesActifs={comptesActifs}
+            objectifStandard={breakdown.standard}
+            objectifsComptes={objectifsComptes}
+            imprevusActifs={imprévusActifs}
+          />
+        );
+      })()}
+
+      {/* Empty state — uniquement si aucune épargne ET aucun imprevu */}
       {epargneMensuelles.length === 0 && imprévusActifs.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-2xl mb-4">💰</div>

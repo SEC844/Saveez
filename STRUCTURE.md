@@ -648,17 +648,17 @@ Docker Compose substitue `${VAR}` au moment du parsing (environnement hôte), pa
 ## 🧭 SYSTÈME DE ROUTAGE
 
 ### **App Router (Next.js 13+)**
-| Route | Fichier | Type | Protection | Description |
-|-------|---------|------|------------|-------------|
-| `/` | `app/page.tsx` | SSR | ✅ Auth | Dashboard principal |
-| `/login` | `app/(auth)/login/page.tsx` | SSR | ❌ Public | Page de connexion |
-| `/setup` | `app/(setup)/setup/page.tsx` | SSR | ✅ Auth | Configuration initiale (obsolète ?) |
-| `/historique` | `app/historique/page.tsx` | SSR | ✅ Auth | Historique des mois passés |
-| `/imprevus` | `app/imprevus/page.tsx` | SSR | ✅ Auth | Liste des imprévus actifs |
-| `/objectifs` | `app/objectifs/page.tsx` | SSR | ✅ Auth | Gestion des objectifs temporels |
-| `/parametres` | `app/parametres/page.tsx` | SSR | ✅ Auth | Paramètres utilisateur |
-| `/projections` | `app/projections/page.tsx` | SSR | ✅ Auth | Projections fin d'année |
-| `/api/auth/[...nextauth]` | `app/api/auth/[...nextauth]/route.ts` | API | ❌ Public | Handlers NextAuth |
+| Route                     | Fichier                               | Type | Protection | Description                         |
+| ------------------------- | ------------------------------------- | ---- | ---------- | ----------------------------------- |
+| `/`                       | `app/page.tsx`                        | SSR  | ✅ Auth     | Dashboard principal                 |
+| `/login`                  | `app/(auth)/login/page.tsx`           | SSR  | ❌ Public   | Page de connexion                   |
+| `/setup`                  | `app/(setup)/setup/page.tsx`          | SSR  | ✅ Auth     | Configuration initiale (obsolète ?) |
+| `/historique`             | `app/historique/page.tsx`             | SSR  | ✅ Auth     | Historique des mois passés          |
+| `/imprevus`               | `app/imprevus/page.tsx`               | SSR  | ✅ Auth     | Liste des imprévus actifs           |
+| `/objectifs`              | `app/objectifs/page.tsx`              | SSR  | ✅ Auth     | Gestion des objectifs temporels     |
+| `/parametres`             | `app/parametres/page.tsx`             | SSR  | ✅ Auth     | Paramètres utilisateur              |
+| `/projections`            | `app/projections/page.tsx`            | SSR  | ✅ Auth     | Projections fin d'année             |
+| `/api/auth/[...nextauth]` | `app/api/auth/[...nextauth]/route.ts` | API  | ❌ Public   | Handlers NextAuth                   |
 
 ### **Protection des Routes**
 Toutes les pages protégées utilisent le pattern suivant :
@@ -695,32 +695,32 @@ export default async function Page() {
 - `Tooltip` : Info-bulles
 
 ### **Composants Customs Clés**
-| Composant | Chemin | Rôle |
-|-----------|--------|------|
-| `DashboardShell` | `components/dashboard/` | Layout global (Sidebar + main) |
-| `StatCard` | `components/dashboard/` | Carte statistique animée (Framer Motion) |
-| `EpargneChart` | `components/dashboard/` | Graphique Recharts (courbes épargne) |
-| `FondsGauge` | `components/dashboard/` | Jauge fonds de sécurité (CircularProgressbar) |
-| `ImprevuProgressCard` | `components/dashboard/` | Carte progression imprévu individuelle |
-| `AddEpargneModal` | `components/dashboard/` | Modal ajout épargne mensuelle (+ répartition) |
-| `AddImprevuModal` | `components/dashboard/` | Modal ajout imprévu |
-| `WhatIfModal` | `components/dashboard/` | Mode simulation ("What If") |
-| `OnboardingModal` | `components/dashboard/` | Popup première connexion |
-| `Sidebar` | `components/dashboard/` | Navigation desktop |
-| `MobileNav` | `components/dashboard/` | Navigation mobile (drawer) |
-| `ThemeToggle` | `components/` | Switch dark/light mode |
-| `Providers` | `components/` | Providers React (Session, Theme, Tooltip) |
+| Composant             | Chemin                  | Rôle                                          |
+| --------------------- | ----------------------- | --------------------------------------------- |
+| `DashboardShell`      | `components/dashboard/` | Layout global (Sidebar + main)                |
+| `StatCard`            | `components/dashboard/` | Carte statistique animée (Framer Motion)      |
+| `EpargneChart`        | `components/dashboard/` | Graphique Recharts (courbes épargne)          |
+| `FondsGauge`          | `components/dashboard/` | Jauge fonds de sécurité (CircularProgressbar) |
+| `ImprevuProgressCard` | `components/dashboard/` | Carte progression imprévu individuelle        |
+| `AddEpargneModal`     | `components/dashboard/` | Modal ajout épargne mensuelle (+ répartition) |
+| `AddImprevuModal`     | `components/dashboard/` | Modal ajout imprévu                           |
+| `WhatIfModal`         | `components/dashboard/` | Mode simulation ("What If")                   |
+| `OnboardingModal`     | `components/dashboard/` | Popup première connexion                      |
+| `Sidebar`             | `components/dashboard/` | Navigation desktop                            |
+| `MobileNav`           | `components/dashboard/` | Navigation mobile (drawer)                    |
+| `ThemeToggle`         | `components/`           | Switch dark/light mode                        |
+| `Providers`           | `components/`           | Providers React (Session, Theme, Tooltip)     |
 
 ---
 
 ## 🧮 LOGIQUE MÉTIER
 
 ### **Fichiers Clés**
-| Fichier | Rôle |
-|---------|------|
-| `lib/epargne.ts` | **CŒUR DE LA LOGIQUE MÉTIER** : Calculs objectifs, écarts, projections |
-| `lib/queries.ts` | Requêtes Prisma réutilisables (getDashboardData, getGraphData) |
-| `app/actions/*.ts` | Server Actions (CRUD épargne, imprévus, objectifs, paramètres) |
+| Fichier            | Rôle                                                                   |
+| ------------------ | ---------------------------------------------------------------------- |
+| `lib/epargne.ts`   | **CŒUR DE LA LOGIQUE MÉTIER** : Calculs objectifs, écarts, projections |
+| `lib/queries.ts`   | Requêtes Prisma réutilisables (getDashboardData, getGraphData)         |
+| `app/actions/*.ts` | Server Actions (CRUD épargne, imprévus, objectifs, paramètres)         |
 
 ### **Fonctions Principales** (`lib/epargne.ts`)
 

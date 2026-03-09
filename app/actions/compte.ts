@@ -67,13 +67,17 @@ export async function deleteCompteAction(compteId: string): Promise<CompteState>
 
     // Si le compte a un solde non nul, empêcher la suppression (sécurité)
     if (compte.solde !== 0) {
-        return { 
-            error: `Ce compte contient encore ${Math.abs(compte.solde).toLocaleString("fr-FR")} €. Transférez le solde avant de supprimer.` 
+        return {
+            error: `Ce compte contient encore ${Math.abs(compte.solde).toLocaleString("fr-FR")} €. Transférez le solde avant de supprimer.`
         };
     }
 
-    // Détache les objectifs liés (compteId → null via onDelete: SetNull en cascade)
-    await prisma.compte.delete({ where: { id: compteId } });
+    // Supprimer explicitement les objectifs liés avant la suppression du compte
+    // (la contrainte onDelete: SetNull met seulement compteId à null — on veut une vraie suppression)
+    await prisma.$transaction([
+        prisma.objectif.deleteMany({ where: { compteId, userId } }),
+        prisma.compte.delete({ where: { id: compteId } }),
+    ]);
 
     revalidatePath("/parametres");
     revalidatePath("/objectifs");
@@ -92,11 +96,20 @@ export async function toggleCompteAction(compteId: string): Promise<CompteState>
 
     const nouvelEtat = !compte.actif;
 
-    // Si on désactive le compte, détacher les objectifs liés
     if (!nouvelEtat) {
+        // Désactivation : on clôture les objectifs liés en leur mettant une dateFin = maintenant
+        // (ils restent en base pour l'historique mais ne sont plus actifs)
+        const maintenant = new Date();
         await prisma.objectif.updateMany({
             where: { compteId, userId },
-            data: { compteId: null, categorie: "standard" },
+            data: { dateFin: maintenant },
+        });
+    } else {
+        // Réactivation : rouvrir les objectifs liés dont dateFin <= maintenant
+        // (on remet dateFin à null pour les rendre indéfinis)
+        await prisma.objectif.updateMany({
+            where: { compteId, userId, dateFin: { not: null } },
+            data: { dateFin: null },
         });
     }
 

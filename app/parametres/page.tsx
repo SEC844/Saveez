@@ -12,7 +12,7 @@ export default async function ParametresPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-const user = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
       name: true,

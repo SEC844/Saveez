@@ -76,11 +76,11 @@ export async function upsertEpargneMensuelleAction(
 
   // ── Calculer les deltas de répartition pour les comptes spéciaux uniquement ─
   const deltaRepartition: Record<string, number> = {};
-  
+
   // NE PAS gérer "standard" et "imprevus" comme des comptes
   // "standard" → User.epargneActuelle (déjà géré par le delta global)
   // "imprevus" → table Imprevu (géré séparément ci-dessous)
-  
+
   // Delta pour les comptes spéciaux (vacances, autre)
   for (const compte of comptes) {
     const oldVal = oldRepartition[compte.id] ?? 0;
@@ -229,8 +229,8 @@ export async function deleteEpargneMensuelleAction(id: string) {
 
   // ── Récupérer les comptes spéciaux actifs (vacances, autre) ─────────────
   // NE PAS gérer 'standard' et 'imprevus' comme des comptes
-  const comptesSpeciaux = await prisma.compte.findMany({ 
-    where: { userId, actif: true } 
+  const comptesSpeciaux = await prisma.compte.findMany({
+    where: { userId, actif: true }
   });
 
   const repartition = (entry.repartition as Record<string, number> | null) ?? {};
@@ -259,7 +259,7 @@ export async function deleteEpargneMensuelleAction(id: string) {
       data: { epargneActuelle: { decrement: entry.montant } },
     }),
   ]);
-  
+
   revalidatePath("/");
   revalidatePath("/comptes");
   return { success: true };

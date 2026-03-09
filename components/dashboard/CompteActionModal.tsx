@@ -76,11 +76,10 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
           <button
             type="button"
             onClick={() => setMode("retrait")}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
-              mode === "retrait"
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${mode === "retrait"
                 ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white"
                 : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300"
-            }`}
+              }`}
           >
             <ArrowDownLeft size={16} />
             Retrait
@@ -88,11 +87,10 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
           <button
             type="button"
             onClick={() => setMode("transfert")}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
-              mode === "transfert"
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${mode === "transfert"
                 ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white"
                 : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300"
-            }`}
+              }`}
           >
             <ArrowRightLeft size={16} />
             Transfert
@@ -221,22 +219,22 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
 
           {/* Bouton submit — masqué si l'opération est terminée (succès ou prop. suppression) */}
           {!state?.success && (
-          <button
-            type="submit"
-            disabled={isPending || (mode === "transfert" && autresComptes.length === 0)}
-            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                En cours...
-              </>
-            ) : mode === "retrait" ? (
-              "Effectuer le retrait"
-            ) : (
-              "Effectuer le transfert"
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={isPending || (mode === "transfert" && autresComptes.length === 0)}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  En cours...
+                </>
+              ) : mode === "retrait" ? (
+                "Effectuer le retrait"
+              ) : (
+                "Effectuer le transfert"
+              )}
+            </button>
           )}
 
           {mode === "transfert" && autresComptes.length === 0 && (

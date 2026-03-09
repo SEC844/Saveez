@@ -297,18 +297,31 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
                           <p className="text-xs text-zinc-400 dark:text-zinc-500 capitalize">{compte.type}</p>
                         </div>
                       </div>
-                      {/* Menu 3 points */}
-                      <CompteMenu compte={compte} />
+                      {/* Historique + Menu 3 points */}
+                      <div className="flex items-center gap-1">
+                        <CompteHistoriqueModal
+                          compteId={compte.id}
+                          compteLabel={compte.label}
+                          trigger={
+                            <button
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                              title="Historique"
+                            >
+                              <History size={15} />
+                            </button>
+                          }
+                        />
+                        <CompteMenu compte={compte} />
+                      </div>
                     </div>
 
                     {/* Solde */}
                     <div className="mt-2">
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Solde</p>
-                      <p className={`text-2xl font-bold tracking-tight ${
-                        isNegative ? "text-red-600 dark:text-red-400"
+                      <p className={`text-2xl font-bold tracking-tight ${isNegative ? "text-red-600 dark:text-red-400"
                           : isZero ? "text-zinc-400 dark:text-zinc-500"
-                          : "text-zinc-900 dark:text-white"
-                      }`}>
+                            : "text-zinc-900 dark:text-white"
+                        }`}>
                         {compte.solde >= 0 ? "" : "-"}{Math.abs(compte.solde).toLocaleString("fr-FR")} €
                       </p>
                     </div>
@@ -334,25 +347,22 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
                       </div>
                     )}
 
-                    {/* Boutons Action et Historique */}
-                    <div className="mt-4 flex gap-2">
+                    {/* Bouton Action — pleine largeur, couleur du compte */}
+                    <div className="mt-4">
                       <CompteActionModal
                         compte={compte}
                         autresComptes={autresComptesActifs}
                         trigger={
-                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors">
-                            <Activity size={14} />
-                            Action
-                          </button>
-                        }
-                      />
-                      <CompteHistoriqueModal
-                        compteId={compte.id}
-                        compteLabel={compte.label}
-                        trigger={
-                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors">
-                            <History size={14} />
-                            Historique
+                          <button
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                            style={{
+                              background: `linear-gradient(135deg, ${compte.couleur}, ${compte.couleur}cc)`,
+                              color: "#fff",
+                              boxShadow: `0 4px 14px rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`,
+                            }}
+                          >
+                            <Activity size={15} />
+                            Effectuer une action
                           </button>
                         }
                       />
