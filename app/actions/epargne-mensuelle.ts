@@ -55,9 +55,26 @@ export async function upsertEpargneMensuelleAction(
   // ── Lire l'ancienne valeur avant upsert (pour le delta) ──────────────────
   const oldEntry = await prisma.epargneMensuelle.findUnique({
     where: { userId_annee_mois: { userId, annee, mois } },
-    select: { montant: true },
+    select: { montant: true, repartition: true },
   });
   const oldMontant = oldEntry?.montant ?? 0;
+  const oldRepartition = (oldEntry?.repartition as Record<string, number> | null) ?? {};
+
+  // ── Calculer les deltas de répartition pour les comptes spéciaux uniquement ─
+  const deltaRepartition: Record<string, number> = {};
+  
+  // NE PAS gérer "standard" et "imprevus" comme des comptes
+  // "standard" → User.epargneActuelle (déjà géré par le delta global)
+  // "imprevus" → table Imprevu (géré séparément ci-dessous)
+  
+  // Delta pour les comptes spéciaux (vacances, autre)
+  for (const compte of comptes) {
+    const oldVal = oldRepartition[compte.id] ?? 0;
+    const newVal = repartitionRaw[compte.id] ?? 0;
+    if (newVal !== oldVal) {
+      deltaRepartition[compte.id] = newVal - oldVal;
+    }
+  }
 
   // ── Upsert de l'entrée ────────────────────────────────────────────────────
   await prisma.epargneMensuelle.upsert({
@@ -65,6 +82,16 @@ export async function upsertEpargneMensuelleAction(
     create: { userId, annee, mois, montant, note, repartition },
     update: { montant, note, repartition, updatedAt: new Date() },
   });
+
+  // ── Mise à jour des soldes des comptes ────────────────────────────────────
+  for (const [compteId, delta] of Object.entries(deltaRepartition)) {
+    if (delta !== 0) {
+      await prisma.compte.update({
+        where: { id: compteId },
+        data: { solde: { increment: delta } },
+      });
+    }
+  }
 
   // ── Recalcul du montantRembourse sur les imprévus ─────────────────────────
   // La source de vérité est maintenant la somme de repartition.imprevus
@@ -133,6 +160,7 @@ export async function upsertEpargneMensuelleAction(
   ]);
 
   revalidatePath("/");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
@@ -144,6 +172,31 @@ export async function deleteEpargneMensuelleAction(id: string) {
   const entry = await prisma.epargneMensuelle.findUnique({ where: { id } });
   if (!entry || entry.userId !== userId) return { error: "Introuvable." };
 
+  // ── Récupérer les comptes spéciaux actifs (vacances, autre) ─────────────
+  // NE PAS gérer 'standard' et 'imprevus' comme des comptes
+  const comptesSpeciaux = await prisma.compte.findMany({ 
+    where: { userId, actif: true } 
+  });
+
+  const repartition = (entry.repartition as Record<string, number> | null) ?? {};
+
+  // Décrémenter uniquement les soldes des comptes spéciaux (vacances, autre)
+  const updates: Promise<any>[] = [];
+
+  for (const compte of comptesSpeciaux) {
+    const montantCompte = repartition[compte.id];
+    if (montantCompte) {
+      updates.push(
+        prisma.compte.update({
+          where: { id: compte.id },
+          data: { solde: { decrement: montantCompte } },
+        })
+      );
+    }
+  }
+
+  await Promise.all(updates);
+
   await prisma.$transaction([
     prisma.epargneMensuelle.delete({ where: { id } }),
     prisma.user.update({
@@ -151,6 +204,8 @@ export async function deleteEpargneMensuelleAction(id: string) {
       data: { epargneActuelle: { decrement: entry.montant } },
     }),
   ]);
+  
   revalidatePath("/");
+  revalidatePath("/comptes");
   return { success: true };
 }

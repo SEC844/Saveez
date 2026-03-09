@@ -99,6 +99,8 @@ export async function resetUserDataAction(
     prisma.imprevu.deleteMany({ where: { userId } }),
     prisma.objectif.deleteMany({ where: { userId } }),
     prisma.actionLog.deleteMany({ where: { userId } }),
+    // Supprimer tous les comptes spéciaux (vacances, autre)
+    prisma.compte.deleteMany({ where: { userId } }),
     prisma.user.update({
       where: { id: userId },
       data: { epargneActuelle: 0 },
@@ -114,6 +116,7 @@ export async function resetUserDataAction(
   ]);
 
   revalidatePath("/");
+  revalidatePath("/comptes");
   return { success: true };
 }
 

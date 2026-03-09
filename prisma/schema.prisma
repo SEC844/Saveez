@@ -144,6 +144,7 @@ model Compte {
   type      String  // "vacances" | "autre"
   label     String  // Nom du compte (ex: "Vacances été 2026")
   actif     Boolean @default(true)
+  solde     Float   @default(0) // Solde actuel du compte (€)
 
   objectifs Objectif[]
 

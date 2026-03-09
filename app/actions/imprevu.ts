@@ -43,6 +43,7 @@ export async function createImprevuAction(
     };
   }
 
+  // Les imprévus piochent dans User.epargneActuelle, pas dans un compte séparé
   const nouvelleEpargne = user.epargneActuelle - montantTotal;
 
   await prisma.$transaction([
@@ -73,6 +74,7 @@ export async function createImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
@@ -116,6 +118,7 @@ export async function rembourserImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
@@ -132,6 +135,7 @@ export async function deleteImprevuAction(
   // Réintègre la partie non remboursée dans l'épargne (l'argent revient)
   const resteARembourser = imp.montantTotal - imp.montantRembourse;
 
+  // Les imprévus réintègrent User.epargneActuelle, pas un compte séparé
   await prisma.$transaction([
     prisma.imprevu.delete({ where: { id: imprevuId } }),
     prisma.user.update({
@@ -151,5 +155,6 @@ export async function deleteImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }

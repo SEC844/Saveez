@@ -1,9 +1,49 @@
 # 📋 STRUCTURE.md — Référentiel Technique Saveez
 
-> **Version :** 1.0.3  
+> **Version :** 1.0.4  
 > **Date :** Mars 2026  
 > **Repo :** https://github.com/SEC844/Saveez.git  
 > **Branches :** `dev` (développement) → `main` (production)
+
+---
+
+## 🆕 CHANGELOG
+
+### v1.0.4 (Mars 2026) — Système de Comptes avec Soldes
+**Fonctionnalités :**
+- ✅ Ajout du champ `solde` au modèle `Compte` (migration Prisma)
+- ✅ Mise à jour automatique des soldes lors de la répartition de l'épargne mensuelle
+- ✅ Nouvelle page `/comptes` : Vue d'ensemble de l'épargne standard + comptes spéciaux
+- ✅ Ajout de l'entrée "Comptes" dans la Sidebar et la navigation mobile
+- ✅ Affichage de l'épargne standard (User.epargneActuelle) comme carte principale
+- ✅ Seuls les comptes spéciaux (vacances, autre) sont affichés comme comptes séparés
+- ✅ Message d'alerte si des comptes inactifs ont un solde non nul
+
+**Corrections architecturales :**
+- 🔧 Suppression des comptes système "standard" et "imprevus" (créés par erreur)
+- 🔧 Standard = User.epargneActuelle (champ existant), pas un Compte séparé
+- 🔧 Imprévus = table Imprevu (remboursements), pas un Compte séparé
+- 🔧 Migration corrective : `20260309095206_remove_system_accounts`
+- 🔧 Mise à jour de toutes les actions serveur pour supprimer les références système
+
+**Améliorations ergonomiques :**
+- 🎨 Interface Apple-like : Cartes animées avec Framer Motion
+- 📊 Visualisation des pourcentages par compte (barres de progression)
+- 🎯 Icônes distinctes : PiggyBank (Standard), Plane (Vacances), Star (Autre)
+- 🌈 Couleurs dégradées par type de compte
+- ⚡ Animations fluides (stagger effect sur les cartes)
+
+**Technique :**
+- Migration 1 : `20260309091635_add_solde_to_comptes` (ajout du champ solde)
+- Migration 2 : `20260309095206_remove_system_accounts` (correction)
+- Fichiers modifiés : 
+  - `prisma/schema.prisma` (type revenu à "vacances" | "autre")
+  - `app/actions/epargne-mensuelle.ts` (suppression logique système)
+  - `app/actions/imprevu.ts` (suppression opérations sur compte Standard)
+  - `app/actions/compte.ts` (suppression protections système)
+  - `app/actions/user-settings.ts` (reset simplifié)
+  - `app/comptes/page.tsx` (récupération User.epargneActuelle)
+  - `app/comptes/ComptesClient.tsx` (refonte complète UI)
 
 ---
 
@@ -31,7 +71,7 @@
 - Suivi des mises de côté mensuelles
 - Gestion des imprévus avec remboursement mensualisé
 - Définition d'objectifs temporels (vacances, projets)
-- Système de comptes multiples (standard, vacances, autres)
+- **Système de comptes multiples avec soldes** (standard, imprévus, vacances, autres)
 - Projections financières et statistiques avancées
 - Interface Apple-like (minimaliste, smooth, dark/light mode)
 
@@ -322,7 +362,7 @@ model Objectif {
 }
 ```
 
-#### **5. Compte** (Comptes spéciaux : vacances, autre)
+#### **5. Compte** (Comptes distincts avec soldes)
 ```prisma
 model Compte {
   id        String     @id @default(cuid())
@@ -330,13 +370,20 @@ model Compte {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   type      String     // "vacances" | "autre"
-  label     String     // Nom du compte
+  label     String     // Nom du compte (ex: "Vacances été 2026")
   actif     Boolean    @default(true)
+  solde     Float      @default(0) // Solde actuel du compte (€)
   
   objectifs Objectif[]
   createdAt DateTime   @default(now())
 }
 ```
+
+**Types de comptes spéciaux :**
+- **vacances** : Comptes créés par l'utilisateur pour les objectifs vacances
+- **autre** : Comptes personnalisés pour d'autres objectifs
+
+**Note :** L'épargne "standard" est stockée dans `User.epargneActuelle`, pas comme un Compte séparé.
 
 #### **6. ActionLog** (Journal d'historique)
 ```prisma
