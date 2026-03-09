@@ -21,15 +21,15 @@ interface AddEpargneModalProps {
   objectifStandard: number;
   objectifsComptes: Record<string, number>;
   imprevusActifs: Imprevu[];
-  // -- Mode édition (contrôle externe) --------------------------
-  // Quand ces props sont fournies, la modale est pilotée par le parent.
+  // -- Mode edition (controle externe) --
+  // Quand ces props sont fournies, la modale est pilotee par le parent.
   editOpen?: boolean;
   onEditOpenChange?: (open: boolean) => void;
   initialAnnee?: number;
   initialMois?: number;
   initialMontant?: number;
   initialNote?: string;
-  // Répartition pré-remplie : clés "standard", "<compteId>", "imprevu_<id>"
+  // Repartition pre-remplie : cles "standard", "<compteId>", "imprevu_<id>"
   initialRepartition?: Record<string, number>;
 }
 
@@ -63,7 +63,7 @@ export default function AddEpargneModal({
   const items: ObjectifItem[] = [
     ...imprevusActifs.map((imp) => ({
       key: `imprevu_${imp.id}`,
-      label: `Imprévu: ${imp.nom}`,
+      label: `Imprevu: ${imp.nom}`,
       cible: imp.montantMensuel,
       accent: "text-amber-500",
     })),
@@ -109,7 +109,7 @@ export default function AddEpargneModal({
     buildInitialRepartition(initialMontant ? String(initialMontant) : "")
   );
 
-  // Quand la modale s'ouvre en mode édition : resynchroniser les valeurs initiales
+  // Quand la modale s'ouvre en mode edition : resynchroniser les valeurs initiales
   useEffect(() => {
     if (isEditMode && open) {
       if (initialAnnee !== undefined) setAnnee(initialAnnee);
@@ -122,7 +122,7 @@ export default function AddEpargneModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Auto-distribution uniquement en mode création
+  // Auto-distribution uniquement en mode creation
   useEffect(() => {
     if (isEditMode) return;
     setRepartition(buildAutoRepartition(total));
@@ -182,10 +182,10 @@ export default function AddEpargneModal({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Epargne totale ce mois (€)</label>
+          <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Epargne totale ce mois (â‚¬)</label>
           {totalCible > 0 && (
             <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1.5">
-              Objectif global : {totalCible.toLocaleString("fr-FR")} €{totalImprevus > 0 ? ` (dont ${totalImprevus.toLocaleString("fr-FR")} € imprévus)` : ""}
+              Objectif global : {totalCible.toLocaleString("fr-FR")} â‚¬{totalImprevus > 0 ? ` (dont ${totalImprevus.toLocaleString("fr-FR")} â‚¬ imprevus)` : ""}
             </p>
           )}
           <input name="montant" type="number" min="0" step="0.01" required value={total} onChange={(e) => setTotal(e.target.value)}
@@ -199,7 +199,7 @@ export default function AddEpargneModal({
               <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Repartition</label>
               {Math.abs(ecart) > 0.01 && (
                 <span className={"text-[10px] font-medium " + (isOver ? "text-red-400" : "text-emerald-500")}>
-                  {!isOver && "+"}{ecart.toLocaleString("fr-FR")} € disponible
+                  {!isOver && "+"}{ecart.toLocaleString("fr-FR")} â‚¬ disponible
                 </span>
               )}
             </div>
@@ -207,7 +207,7 @@ export default function AddEpargneModal({
               <div key={it.key} className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className={"text-xs truncate " + (it.accent ?? "text-zinc-700 dark:text-zinc-300")}>{it.label}</p>
-                  {it.cible > 0 && <p className="text-[10px] text-zinc-400">cible : {it.cible.toLocaleString("fr-FR")} €</p>}
+                  {it.cible > 0 && <p className="text-[10px] text-zinc-400">cible : {it.cible.toLocaleString("fr-FR")} â‚¬</p>}
                 </div>
                 <input name={"repartition_" + it.key} type="number" min="0" step="0.01"
                   value={repartition[it.key] ?? ""}
@@ -215,7 +215,7 @@ export default function AddEpargneModal({
                   className="w-24 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 text-xs text-right text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white transition-all" />
               </div>
             ))}
-            {isOver && <p className="text-[10px] text-red-400">La répartition dépasse l&apos;épargne saisie.</p>}
+            {isOver && <p className="text-[10px] text-red-400">La repartition depasse l&apos;epargne saisie.</p>}
           </motion.div>
         )}
 
@@ -234,7 +234,7 @@ export default function AddEpargneModal({
         <motion.button type="submit" disabled={isPending || isOver} whileTap={{ scale: 0.97 }}
           className="w-full h-10 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
           {isPending ? <Loader2 size={14} className="animate-spin" /> : state?.success ? <CheckCircle size={14} /> : isEditMode ? <Pencil size={14} /> : <Plus size={14} />}
-          {state?.success ? "Enregistre !" : isEditMode ? "Mettre à jour" : "Enregistrer"}
+          {state?.success ? "Enregistre !" : isEditMode ? "Mettre a jour" : "Enregistrer"}
         </motion.button>
       </form>
     </DialogContent>
