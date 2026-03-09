@@ -43,6 +43,19 @@ export async function createImprevuAction(
     };
   }
 
+  // ── Prélever du compte Standard (l'imprévu pioche dans l'épargne de base) ──
+  const compteStandard = await prisma.compte.findFirst({
+    where: { userId, type: "standard" },
+  });
+
+  if (compteStandard && compteStandard.solde >= montantTotal) {
+    // Décrémenter le compte standard
+    await prisma.compte.update({
+      where: { id: compteStandard.id },
+      data: { solde: { decrement: montantTotal } },
+    });
+  }
+
   const nouvelleEpargne = user.epargneActuelle - montantTotal;
 
   await prisma.$transaction([
@@ -73,6 +86,7 @@ export async function createImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
@@ -116,6 +130,7 @@ export async function rembourserImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
@@ -131,6 +146,18 @@ export async function deleteImprevuAction(
 
   // Réintègre la partie non remboursée dans l'épargne (l'argent revient)
   const resteARembourser = imp.montantTotal - imp.montantRembourse;
+
+  // ── Réintégrer dans le compte Standard ────────────────────────────────────
+  const compteStandard = await prisma.compte.findFirst({
+    where: { userId, type: "standard" },
+  });
+
+  if (compteStandard) {
+    await prisma.compte.update({
+      where: { id: compteStandard.id },
+      data: { solde: { increment: resteARembourser } },
+    });
+  }
 
   await prisma.$transaction([
     prisma.imprevu.delete({ where: { id: imprevuId } }),
@@ -151,5 +178,6 @@ export async function deleteImprevuAction(
 
   revalidatePath("/");
   revalidatePath("/imprevus");
+  revalidatePath("/comptes");
   return { success: true };
 }

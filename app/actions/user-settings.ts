@@ -99,6 +99,18 @@ export async function resetUserDataAction(
     prisma.imprevu.deleteMany({ where: { userId } }),
     prisma.objectif.deleteMany({ where: { userId } }),
     prisma.actionLog.deleteMany({ where: { userId } }),
+    // Supprimer les comptes non-système (vacances, autre)
+    prisma.compte.deleteMany({ 
+      where: { 
+        userId, 
+        type: { notIn: ["standard", "imprevus"] } 
+      } 
+    }),
+    // Réinitialiser les soldes des comptes système à 0
+    prisma.compte.updateMany({
+      where: { userId, type: { in: ["standard", "imprevus"] } },
+      data: { solde: 0 },
+    }),
     prisma.user.update({
       where: { id: userId },
       data: { epargneActuelle: 0 },
@@ -114,6 +126,7 @@ export async function resetUserDataAction(
   ]);
 
   revalidatePath("/");
+  revalidatePath("/comptes");
   return { success: true };
 }
 
