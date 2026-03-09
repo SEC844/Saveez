@@ -36,6 +36,7 @@ export async function createCompteAction(
 
     revalidatePath("/parametres");
     revalidatePath("/objectifs");
+    revalidatePath("/comptes");
     revalidatePath("/");
     return { success: true };
 }
@@ -48,11 +49,24 @@ export async function deleteCompteAction(compteId: string): Promise<CompteState>
     const compte = await prisma.compte.findUnique({ where: { id: compteId } });
     if (!compte || compte.userId !== userId) return { error: "Introuvable." };
 
+    // Empêcher la suppression des comptes système (standard et imprevus)
+    if (compte.type === "standard" || compte.type === "imprevus") {
+        return { error: "Impossible de supprimer un compte système." };
+    }
+
+    // Si le compte a un solde non nul, empêcher la suppression (sécurité)
+    if (compte.solde !== 0) {
+        return { 
+            error: `Ce compte contient encore ${Math.abs(compte.solde).toLocaleString("fr-FR")} €. Transférez le solde avant de supprimer.` 
+        };
+    }
+
     // Détache les objectifs liés (compteId → null via onDelete: SetNull en cascade)
     await prisma.compte.delete({ where: { id: compteId } });
 
     revalidatePath("/parametres");
     revalidatePath("/objectifs");
+    revalidatePath("/comptes");
     revalidatePath("/");
     return { success: true };
 }
@@ -65,12 +79,18 @@ export async function toggleCompteAction(compteId: string): Promise<CompteState>
     const compte = await prisma.compte.findUnique({ where: { id: compteId } });
     if (!compte || compte.userId !== userId) return { error: "Introuvable." };
 
+    // Empêcher la désactivation des comptes système
+    if (compte.type === "standard" || compte.type === "imprevus") {
+        return { error: "Impossible de désactiver un compte système." };
+    }
+
     await prisma.compte.update({
         where: { id: compteId },
         data: { actif: !compte.actif },
     });
 
     revalidatePath("/parametres");
+    revalidatePath("/comptes");
     revalidatePath("/");
     return { success: true };
 }
