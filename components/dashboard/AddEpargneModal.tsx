@@ -156,11 +156,18 @@ export default function AddEpargneModal({
       </DialogHeader>
 
       <form action={action} className="space-y-4 mt-2">
+        {/* Hidden inputs pour garantir la soumission meme avec les selects disabled */}
+        {isEditMode && (
+          <>
+            <input type="hidden" name="mois" value={mois} />
+            <input type="hidden" name="annee" value={annee} />
+          </>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Mois</label>
             <div className="relative">
-              <select name="mois" value={mois} onChange={(e) => setMois(Number(e.target.value))}
+              <select name={isEditMode ? undefined : "mois"} value={mois} onChange={(e) => setMois(Number(e.target.value))}
                 disabled={isEditMode}
                 className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none disabled:opacity-60">
                 {MOIS_LABELS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
@@ -171,7 +178,7 @@ export default function AddEpargneModal({
           <div>
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Annee</label>
             <div className="relative">
-              <select name="annee" value={annee} onChange={(e) => setAnnee(Number(e.target.value))}
+              <select name={isEditMode ? undefined : "annee"} value={annee} onChange={(e) => setAnnee(Number(e.target.value))}
                 disabled={isEditMode}
                 className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none disabled:opacity-60">
                 {years.map((y) => <option key={y} value={y}>{y}</option>)}

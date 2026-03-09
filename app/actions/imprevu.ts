@@ -23,16 +23,19 @@ export async function createImprevuAction(
   const nom = (formData.get("nom") as string)?.trim();
   const montantTotal = parseFloat(formData.get("montantTotal") as string);
   const duree = parseInt(formData.get("dureeRemboursement") as string);
+  const moisDebut = parseInt(formData.get("moisDebut") as string);
+  const anneeDebut = parseInt(formData.get("anneeDebut") as string);
 
   if (!nom) return { error: "Le nom est obligatoire." };
   if (isNaN(montantTotal) || montantTotal <= 0)
     return { error: "Montant invalide." };
   if (isNaN(duree) || duree < 1 || duree > 120)
-    return { error: "Durée invalide (1–120 mois)." };
+    return { error: "Duree invalide (1-120 mois)." };
+  if (isNaN(moisDebut) || moisDebut < 1 || moisDebut > 12)
+    return { error: "Mois de debut invalide." };
+  if (isNaN(anneeDebut) || anneeDebut < 2000 || anneeDebut > 2100)
+    return { error: "Annee de debut invalide." };
 
-  const now = new Date();
-  const moisDebut = now.getMonth() + 1;
-  const anneeDebut = now.getFullYear();
   const montantMensuel = Math.round((montantTotal / duree) * 100) / 100;
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });

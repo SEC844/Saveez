@@ -3,24 +3,38 @@
 import { useActionState, useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createImprevuAction } from "@/app/actions/imprevu";
-import { AlertTriangle, Loader2, CheckCircle } from "lucide-react";
+import { AlertTriangle, Loader2, CheckCircle, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const MOIS_LABELS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
 
 interface AddImprevuModalProps {
   objectifBase: number;
 }
 
 export default function AddImprevuModal({ objectifBase }: AddImprevuModalProps) {
+  const now = new Date();
   const [open, setOpen] = useState(false);
   const [state, action, isPending] = useActionState(createImprevuAction, null);
   const [montant, setMontant] = useState("");
   const [duree, setDuree] = useState("6");
+  const [moisDebut, setMoisDebut] = useState(now.getMonth() + 1);
+  const [anneeDebut, setAnneeDebut] = useState(now.getFullYear());
+
+  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
 
   useEffect(() => {
     if (state?.success) {
-      const t = setTimeout(() => { setOpen(false); setMontant(""); setDuree("6"); }, 800);
+      const t = setTimeout(() => {
+        setOpen(false);
+        setMontant("");
+        setDuree("6");
+        setMoisDebut(now.getMonth() + 1);
+        setAnneeDebut(now.getFullYear());
+      }, 800);
       return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const mensuel = montant && duree
@@ -71,7 +85,7 @@ export default function AddImprevuModal({ objectifBase }: AddImprevuModalProps) 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Durée (mois)</label>
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Duree (mois)</label>
               <input
                 name="dureeRemboursement"
                 type="number"
@@ -82,6 +96,39 @@ export default function AddImprevuModal({ objectifBase }: AddImprevuModalProps) 
                 onChange={(e) => setDuree(e.target.value)}
                 className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all"
               />
+            </div>
+          </div>
+
+          {/* Date de debut du remboursement */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Date de debut du remboursement</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <select
+                  name="moisDebut"
+                  value={moisDebut}
+                  onChange={(e) => setMoisDebut(Number(e.target.value))}
+                  className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none"
+                >
+                  {MOIS_LABELS.map((m, i) => (
+                    <option key={i} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <select
+                  name="anneeDebut"
+                  value={anneeDebut}
+                  onChange={(e) => setAnneeDebut(Number(e.target.value))}
+                  className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none"
+                >
+                  {years.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
             </div>
           </div>
 
