@@ -49,11 +49,6 @@ export async function deleteCompteAction(compteId: string): Promise<CompteState>
     const compte = await prisma.compte.findUnique({ where: { id: compteId } });
     if (!compte || compte.userId !== userId) return { error: "Introuvable." };
 
-    // Empêcher la suppression des comptes système (standard et imprevus)
-    if (compte.type === "standard" || compte.type === "imprevus") {
-        return { error: "Impossible de supprimer un compte système." };
-    }
-
     // Si le compte a un solde non nul, empêcher la suppression (sécurité)
     if (compte.solde !== 0) {
         return { 
@@ -78,11 +73,6 @@ export async function toggleCompteAction(compteId: string): Promise<CompteState>
 
     const compte = await prisma.compte.findUnique({ where: { id: compteId } });
     if (!compte || compte.userId !== userId) return { error: "Introuvable." };
-
-    // Empêcher la désactivation des comptes système
-    if (compte.type === "standard" || compte.type === "imprevus") {
-        return { error: "Impossible de désactiver un compte système." };
-    }
 
     await prisma.compte.update({
         where: { id: compteId },
