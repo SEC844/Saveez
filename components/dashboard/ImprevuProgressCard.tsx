@@ -65,6 +65,11 @@ export default function ImprevuProgressCard({ imprevu, delay = 0, onDeleted }: I
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
               {imprevu.montantMensuel.toLocaleString("fr-FR")} €/mois · {imprevu.montantTotal.toLocaleString("fr-FR")} € total
             </p>
+            {imprevu.estSolde && (
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1">
+                Créé en {new Date(imprevu.createdAt).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}, soldé en {new Date(imprevu.updatedAt).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+              </p>
+            )}
           </div>
           <button
             onClick={() => setConfirmOpen(true)}

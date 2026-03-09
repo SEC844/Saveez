@@ -1,8 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Wallet, Plane, Star, PiggyBank, AlertCircle } from "lucide-react";
+import { Wallet, Plane, Star, PiggyBank, Activity, History } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import AddCompteModal from "@/components/dashboard/AddCompteModal";
+import CompteActionModal from "@/components/dashboard/CompteActionModal";
+import CompteHistoriqueModal from "@/components/dashboard/CompteHistoriqueModal";
 import type { Compte } from "@prisma/client";
 
 type Props = {
@@ -17,11 +20,17 @@ const ICONS = {
   autre: Star,
 };
 
-// Couleurs par type de compte (Tailwind classes)
-const COLORS = {
-  vacances: "from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-900",
-  autre: "from-green-500/10 to-green-600/5 border-green-200 dark:border-green-900",
-};
+// Convertir hex en RGB pour créer des backgrounds semi-transparents
+function hexToRgb(hex: string) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : { r: 139, g: 92, b: 246 }; // Violet par défaut
+}
 
 export default function ComptesClient({ comptes, epargneStandard, soldeComptesInactifs }: Props) {
   // Filtrer uniquement les comptes actifs pour l'affichage principal
@@ -30,12 +39,12 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
   // Calculer le total des soldes des comptes actifs
   const totalComptesActifs = comptesActifs.reduce((sum, c) => sum + c.solde, 0);
 
-  // Total général
+  // Total général (épargne standard déjà calculée côté serveur)
   const total = epargneStandard + totalComptesActifs + soldeComptesInactifs;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header avec bouton d'ajout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
@@ -45,6 +54,7 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
             Vue d'ensemble de vos soldes par compte
           </p>
         </div>
+        <AddCompteModal />
       </div>
 
       {/* Carte de l'épargne standard (User.epargneActuelle) */}
@@ -82,21 +92,10 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Card className="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
-                  Comptes désactivés
-                </p>
-                <p className="text-sm text-orange-700 dark:text-orange-300 mt-0.5">
-                  Dont <span className="font-semibold">{Math.abs(soldeComptesInactifs).toLocaleString("fr-FR")} €</span> provenant de comptes désactivés.
-                  {soldeComptesInactifs > 0 
-                    ? " Réactivez-les ou transférez le solde depuis les paramètres."
-                    : " Solde négatif sur compte inactif."}
-                </p>
-              </div>
-            </div>
+          <Card className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium">{Math.abs(soldeComptesInactifs).toLocaleString("fr-FR")} €</span> présent sur des comptes désactivés.
+            </p>
           </Card>
         </motion.div>
       )}
@@ -113,9 +112,12 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {comptesActifs.map((compte, index) => {
               const Icon = ICONS[compte.type as keyof typeof ICONS] || Star;
-              const colorClasses = COLORS[compte.type as keyof typeof COLORS] || COLORS.autre;
+              const rgb = hexToRgb(compte.couleur || "#8B5CF6");
               const isNegative = compte.solde < 0;
               const isZero = compte.solde === 0;
+              
+              // Autres comptes actifs (pour les transferts)
+              const autresComptesActifs = comptesActifs.filter(c => c.id !== compte.id);
 
               return (
                 <motion.div
@@ -125,12 +127,24 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
                   transition={{ duration: 0.4, delay: 0.2 + index * 0.05 }}
                 >
                   <Card
-                    className={`p-5 bg-gradient-to-br ${colorClasses} border transition-all hover:shadow-md`}
+                    className="p-5 border transition-all hover:shadow-md"
+                    style={{
+                      background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05) 100%)`,
+                      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`,
+                    }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/50 dark:bg-zinc-900/50 rounded-lg">
-                          <Icon className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
+                        <div
+                          className="p-2 rounded-lg"
+                          style={{
+                            backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`,
+                          }}
+                        >
+                          <Icon
+                            className="w-5 h-5"
+                            style={{ color: compte.couleur }}
+                          />
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-zinc-900 dark:text-white">
@@ -177,11 +191,38 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
                             initial={{ width: 0 }}
                             animate={{ width: `${(compte.solde / total) * 100}%` }}
                             transition={{ duration: 0.8, delay: 0.2 + index * 0.05 }}
-                            className="h-full bg-gradient-to-r from-zinc-600 to-zinc-800 dark:from-zinc-400 dark:to-zinc-500"
+                            className="h-full"
+                            style={{
+                              background: `linear-gradient(90deg, ${compte.couleur}, ${compte.couleur}dd)`,
+                            }}
                           />
                         </div>
                       </div>
                     )}
+
+                    {/* Boutons Action et Historique */}
+                    <div className="mt-4 flex gap-2">
+                      <CompteActionModal
+                        compte={compte}
+                        autresComptes={autresComptesActifs}
+                        trigger={
+                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors">
+                            <Activity size={14} />
+                            Action
+                          </button>
+                        }
+                      />
+                      <CompteHistoriqueModal
+                        compteId={compte.id}
+                        compteLabel={compte.label}
+                        trigger={
+                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors">
+                            <History size={14} />
+                            Historique
+                          </button>
+                        }
+                      />
+                    </div>
                   </Card>
                 </motion.div>
               );

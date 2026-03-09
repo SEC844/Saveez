@@ -96,7 +96,7 @@ export default async function DashboardPage() {
             comptesActifs={comptesActifs}
             objectifStandard={breakdown.standard}
             objectifsComptes={objectifsComptes}
-            montantImprevu={breakdown.remboursements}
+            imprevusActifs={imprévusActifs}
           />
           <AddImprevuModal objectifBase={user.objectifBase} />
           <WhatIfModal epargneActuelle={user.epargneActuelle} />

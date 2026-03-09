@@ -22,22 +22,24 @@ export default async function ComptesPage() {
     ],
   });
 
-  // Récupérer User.epargneActuelle (épargne "standard")
+  // Récupérer User.epargneActuelle (total de toute l'épargne)
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: { epargneActuelle: true },
   });
 
-  // Calculer le total des comptes inactifs avec solde
-  const soldeComptesInactifs = comptes
-    .filter((c) => !c.actif && c.solde !== 0)
-    .reduce((sum, c) => sum + c.solde, 0);
+  // Calculer les soldes
+  const totalComptesActifs = comptes.filter(c => c.actif).reduce((sum, c) => sum + c.solde, 0);
+  const soldeComptesInactifs = comptes.filter(c => !c.actif).reduce((sum, c) => sum + c.solde, 0);
+  
+  // Épargne standard = Total - (comptes actifs + comptes inactifs)
+  const epargneStandard = user.epargneActuelle - totalComptesActifs - soldeComptesInactifs;
 
   return (
     <DashboardShell>
       <ComptesClient
         comptes={comptes}
-        epargneStandard={user.epargneActuelle}
+        epargneStandard={epargneStandard}
         soldeComptesInactifs={soldeComptesInactifs}
       />
     </DashboardShell>

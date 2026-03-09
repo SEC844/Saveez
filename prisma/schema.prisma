@@ -35,6 +35,7 @@ model User {
   objectifs         Objectif[]
   actionLogs        ActionLog[]
   comptes           Compte[]
+  transactions      Transaction[]
 
   @@map("users")
 }
@@ -145,10 +146,37 @@ model Compte {
   label     String  // Nom du compte (ex: "Vacances été 2026")
   actif     Boolean @default(true)
   solde     Float   @default(0) // Solde actuel du compte (€)
+  couleur   String  @default("#8B5CF6") // Couleur hex du compte (pour UI)
 
-  objectifs Objectif[]
+  objectifs            Objectif[]
+  transactionsSource   Transaction[] @relation("TransactionSource")
+  transactionsDestination Transaction[] @relation("TransactionDestination")
 
   createdAt DateTime @default(now())
 
   @@map("comptes")
+}
+
+// ─────────────────────────────────────────────
+// Transactions (retraits et transferts sur comptes)
+// ─────────────────────────────────────────────
+
+model Transaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String  // "retrait" | "transfert"
+  montant Float   // Montant de la transaction (€)
+  note    String? // Commentaire optionnel
+
+  compteSourceId      String? // FK → Compte source (pour transferts)
+  compteSource        Compte? @relation("TransactionSource", fields: [compteSourceId], references: [id], onDelete: SetNull)
+  
+  compteDestinationId String? // FK → Compte destination (pour transferts)
+  compteDestination   Compte? @relation("TransactionDestination", fields: [compteDestinationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@map("transactions")
 }

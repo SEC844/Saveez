@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { upsertEpargneMensuelleAction } from "@/app/actions/epargne-mensuelle";
 import { Plus, Loader2, CheckCircle, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Compte } from "@prisma/client";
+import type { Compte, Imprevu } from "@prisma/client";
 
 const MOIS_LABELS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
 
@@ -20,10 +20,10 @@ interface AddEpargneModalProps {
   comptesActifs: Compte[];
   objectifStandard: number;
   objectifsComptes: Record<string, number>;
-  montantImprevu?: number;
+  imprevusActifs: Imprevu[];
 }
 
-export default function AddEpargneModal({ comptesActifs, objectifStandard, objectifsComptes, montantImprevu = 0 }: AddEpargneModalProps) {
+export default function AddEpargneModal({ comptesActifs, objectifStandard, objectifsComptes, imprevusActifs }: AddEpargneModalProps) {
   const now = new Date();
   const [open, setOpen] = useState(false);
   const [state, action, isPending] = useActionState(upsertEpargneMensuelleAction, null);
@@ -34,11 +34,14 @@ export default function AddEpargneModal({ comptesActifs, objectifStandard, objec
   const [note, setNote] = useState("");
 
   // Construction des lignes de répartition dans l'ordre de priorité :
-  // 1) Imprévus (obligation), 2) Comptes spéciaux, 3) Standard
+  // 1) Imprévus (un par imprévu actif), 2) Comptes spéciaux, 3) Standard
   const items: ObjectifItem[] = [
-    ...(montantImprevu > 0
-      ? [{ key: "imprevus", label: "Remboursement imprévus", cible: montantImprevu, accent: "text-amber-500" }]
-      : []),
+    ...imprevusActifs.map((imp) => ({
+      key: `imprevu_${imp.id}`,
+      label: `Imprévu: ${imp.nom}`,
+      cible: imp.montantMensuel,
+      accent: "text-amber-500",
+    })),
     ...comptesActifs.map((c) => ({
       key: c.id,
       label: c.label,
@@ -48,6 +51,7 @@ export default function AddEpargneModal({ comptesActifs, objectifStandard, objec
   ];
 
   const totalCible = items.reduce((s, it) => s + it.cible, 0);
+  const totalImprevus = imprevusActifs.reduce((s, imp) => s + imp.montantMensuel, 0);
   const [repartition, setRepartition] = useState<Record<string, string>>({});
 
   // Auto-distribution: imprévus → comptes spéciaux → standard
@@ -125,7 +129,7 @@ export default function AddEpargneModal({ comptesActifs, objectifStandard, objec
             <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">{"Epargne totale ce mois (€)"}</label>
             {totalCible > 0 && (
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1.5">
-                Objectif global : {totalCible.toLocaleString("fr-FR")} €{montantImprevu > 0 ? ` (dont ${montantImprevu.toLocaleString("fr-FR")} € imprévus)` : ""}
+                Objectif global : {totalCible.toLocaleString("fr-FR")} €{totalImprevus > 0 ? ` (dont ${totalImprevus.toLocaleString("fr-FR")} € imprévus)` : ""}
               </p>
             )}
             <input name="montant" type="number" min="0" step="0.01" required value={total} onChange={(e) => setTotal(e.target.value)}

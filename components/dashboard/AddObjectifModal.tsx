@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Target, Loader2, X, AlertTriangle } from "lucide-react";
+import { Plus, Target, Loader2, X, AlertTriangle, ChevronDown } from "lucide-react";
 import { createObjectifAction } from "@/app/actions/objectif";
 import { getSuggestionsObjectif } from "@/lib/epargne";
 import type { Compte } from "@prisma/client";
+
+const MOIS_LABELS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
 
 interface AddObjectifModalProps {
   revenuNet?: number | null;
@@ -47,22 +49,44 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const [dateDebut, setDateDebut] = useState(toInputDate(today));
-  const [dateFin, setDateFin] = useState(() => {
+  
+  // États pour mois/année au lieu de dates complètes
+  const [moisDebut, setMoisDebut] = useState(today.getMonth() + 1);
+  const [anneeDebut, setAnneeDebut] = useState(today.getFullYear());
+  const [moisFin, setMoisFin] = useState(() => {
     const p = PRESETS.find((p) => p.id === "3m");
-    return p?.months ? toInputDate(addMonths(today, p.months)) : "";
+    if (!p?.months) return today.getMonth() + 1;
+    const fin = addMonths(today, p.months);
+    return fin.getMonth() + 1;
+  });
+  const [anneeFin, setAnneeFin] = useState(() => {
+    const p = PRESETS.find((p) => p.id === "3m");
+    if (!p?.months) return today.getFullYear();
+    const fin = addMonths(today, p.months);
+    return fin.getFullYear();
   });
 
   function handlePresetChange(id: string) {
     setPreset(id);
     const p = PRESETS.find((p) => p.id === id);
-    if (p?.months) setDateFin(toInputDate(addMonths(new Date(dateDebut), p.months)));
+    if (p?.months) {
+      const debut = new Date(anneeDebut, moisDebut - 1, 1);
+      const fin = addMonths(debut, p.months);
+      setMoisFin(fin.getMonth() + 1);
+      setAnneeFin(fin.getFullYear());
+    }
   }
 
-  function handleDebutChange(v: string) {
-    setDateDebut(v);
+  function handleDebutChange(newMois: number, newAnnee: number) {
+    setMoisDebut(newMois);
+    setAnneeDebut(newAnnee);
     const p = PRESETS.find((p) => p.id === preset);
-    if (p?.months) setDateFin(toInputDate(addMonths(new Date(v), p.months)));
+    if (p?.months) {
+      const debut = new Date(newAnnee, newMois - 1, 1);
+      const fin = addMonths(debut, p.months);
+      setMoisFin(fin.getMonth() + 1);
+      setAnneeFin(fin.getFullYear());
+    }
   }
 
   function handleSelectType(cat: string, cid: string) {
@@ -90,11 +114,19 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
       setCategorie("standard");
       setCompteId("");
       setForce(false);
+      setMoisDebut(today.getMonth() + 1);
+      setAnneeDebut(today.getFullYear());
+      const p = PRESETS.find((p) => p.id === "3m");
+      if (p?.months) {
+        const fin = addMonths(today, p.months);
+        setMoisFin(fin.getMonth() + 1);
+        setAnneeFin(fin.getFullYear());
+      }
     }
     if (!state.pendingConfirm) {
       setForce(false);
     }
-  }, [state]);
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggestions = revenuNet ? getSuggestionsObjectif(revenuNet) : [];
   const comptesActifs = comptes.filter((c) => c.actif);
@@ -228,37 +260,80 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-                Date de début
-              </label>
-              <input
-                name="dateDebut"
-                type="date"
-                value={dateDebut}
-                onChange={(e) => handleDebutChange(e.target.value)}
-                className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-                Date de fin{" "}
-                {preset !== "custom" && (
-                  <span className="text-zinc-300 dark:text-zinc-600">(auto)</span>
-                )}
-              </label>
-              <input
-                name="dateFin"
-                type="date"
-                value={dateFin}
-                onChange={(e) => setDateFin(e.target.value)}
-                readOnly={preset !== "custom"}
-                className={`w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all ${preset !== "custom" ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
-              />
+          {/* Période de début */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+              Début
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <select
+                  value={moisDebut}
+                  onChange={(e) => handleDebutChange(Number(e.target.value), anneeDebut)}
+                  className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none"
+                >
+                  {MOIS_LABELS.map((m, i) => (
+                    <option key={i} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <select
+                  value={anneeDebut}
+                  onChange={(e) => handleDebutChange(moisDebut, Number(e.target.value))}
+                  className="w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none"
+                >
+                  {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1, today.getFullYear() + 2].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
             </div>
           </div>
+
+          {/* Période de fin */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+              Fin{" "}
+              {preset !== "custom" && (
+                <span className="text-zinc-300 dark:text-zinc-600">(auto)</span>
+              )}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <select
+                  value={moisFin}
+                  onChange={(e) => setMoisFin(Number(e.target.value))}
+                  disabled={preset !== "custom"}
+                  className={`w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none ${preset !== "custom" ? "opacity-60 cursor-not-allowed" : ""}`}
+                >
+                  {MOIS_LABELS.map((m, i) => (
+                    <option key={i} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <select
+                  value={anneeFin}
+                  onChange={(e) => setAnneeFin(Number(e.target.value))}
+                  disabled={preset !== "custom"}
+                  className={`w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 pr-8 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all appearance-none ${preset !== "custom" ? "opacity-60 cursor-not-allowed" : ""}`}
+                >
+                  {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1, today.getFullYear() + 2, today.getFullYear() + 3].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Hidden inputs pour soumettre les dates au serveur */}
+          <input type="hidden" name="dateDebut" value={new Date(anneeDebut, moisDebut - 1, 1).toISOString().split("T")[0]} />
+          <input type="hidden" name="dateFin" value={new Date(anneeFin, moisFin - 1, 1).toISOString().split("T")[0]} />
 
           <AnimatePresence>
             {state?.error && (

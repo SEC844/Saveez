@@ -1,6 +1,6 @@
 # 📋 STRUCTURE.md — Référentiel Technique Saveez
 
-> **Version :** 1.0.4  
+> **Version :** 1.0.4.1  
 > **Date :** Mars 2026  
 > **Repo :** https://github.com/SEC844/Saveez.git  
 > **Branches :** `dev` (développement) → `main` (production)
@@ -8,6 +8,48 @@
 ---
 
 ## 🆕 CHANGELOG
+
+### v1.0.4.1 (Mars 2026) — Système de Transactions & Améliorations UX
+**Nouvelles fonctionnalités :**
+- ✅ **Système de transactions** : Table `Transaction` pour tracer retraits/transferts entre comptes
+- ✅ **Couleurs personnalisées** : Chaque compte peut avoir sa propre couleur (champ `couleur` dans Compte)
+- ✅ **Page Comptes refonte** :
+  - ✨ Boutons "Action" et "Historique" sur chaque carte de compte
+  - ✨ Modal "Action" : retrait ou transfert entre comptes avec validation temps réel
+  - ✨ Modal "Historique" : Timeline des 50 dernières transactions par compte
+  - ✨ Modal "Nouveau Compte" : Color picker (8 couleurs), solde initial optionnel
+  - 🎨 Cartes avec couleurs dynamiques (backgrounds rgba + icônes colorées)
+- ✅ **Répartition imprévus** : Affichage de plusieurs champs si plusieurs imprévus actifs (AddEpargneModal)
+- ✅ **Dates sur imprévus soldés** : Affichage "Créé en X, soldé en Y" pour les imprévus terminés
+- ✅ **Objectifs UX** : Remplacement des calendriers par dropdowns mois/année (AddObjectifModal)
+
+**Corrections de bugs :**
+- 🐛 Désactivation compte → objectifs liés passent en "standard" (categorie + compteId=null)
+- 🐛 Calcul solde standard : exclut désormais les soldes des comptes spéciaux (actifs + inactifs)
+- 🐛 Message comptes inactifs : texte gris au lieu de badge rouge
+
+**Technique :**
+- Migration : `20260309104015_add_couleur_to_comptes`
+  - Ajout `Compte.couleur String @default("#8B5CF6")`
+  - Création table `Transaction` (type, montant, note, compteSource/Destination FKs)
+- Server Actions :
+  - `createCompteAction` : accepte couleur + soldeInitial params
+  - `toggleCompteAction` : détache objectifs lors désactivation
+  - `retraitCompteAction` : retrait avec validation solde
+  - `transfertCompteAction` : transfert atomique avec double FK
+  - `getTransactionsCompte` : query transactions avec labels comptes
+- Nouveaux composants :
+  - `AddCompteModal.tsx` : Création compte avec color picker
+  - `CompteActionModal.tsx` : Dual-mode retrait/transfert
+  - `CompteHistoriqueModal.tsx` : Timeline transactions
+- Fichiers modifiés :
+  - `app/comptes/page.tsx` : Correction calcul epargneStandard
+  - `app/comptes/ComptesClient.tsx` : Intégration modals + couleurs dynamiques
+  - `components/dashboard/AddEpargneModal.tsx` : Répartition multi-imprévus
+  - `components/dashboard/ImprevuProgressCard.tsx` : Dates création/solde
+  - `components/dashboard/AddObjectifModal.tsx` : Dropdowns mois/année
+
+---
 
 ### v1.0.4 (Mars 2026) — Système de Comptes avec Soldes
 **Fonctionnalités :**
