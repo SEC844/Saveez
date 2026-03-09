@@ -198,12 +198,30 @@ export default async function DashboardPage() {
 
       {/* Placements annuels — tableau interactif année en cours */}
       {(() => {
-        // Construire les EntreeMois pour l'année courante
+        // Construire les EntreeMois pour l'année courante avec objectifs par mois
         const entreesAnnee = Array.from({ length: 12 }, (_, i) => {
           const m = i + 1;
           const e = epargneMensuelles.find((x) => x.annee === currentYear && x.mois === m);
           const obj = getObjectifDynamique(user.objectifBase, allImprévus, currentYear, m, objectifs);
           const rep = e?.repartition as Record<string, number> | null | undefined;
+
+          // Objectifs spécifiques à CE mois pour la modale d'édition
+          const breakdownMois = getObjectifBreakdownForMonth(
+            user.objectifBase, allImprévus, currentYear, m, objectifs
+          );
+          const objCompteMois: Record<string, number> = {};
+          for (const c of comptesActifs) {
+            const mStart = new Date(currentYear, m - 1, 1);
+            const mEnd = new Date(currentYear, m, 0);
+            const oc = objectifs.find((o) => {
+              if (o.compteId !== c.id) return false;
+              const d = new Date(o.dateDebut);
+              const f = o.dateFin ? new Date(o.dateFin) : null;
+              return d <= mEnd && (!f || f >= mStart);
+            });
+            if (oc) objCompteMois[c.id] = oc.montant;
+          }
+
           return {
             annee: currentYear,
             mois: m,
@@ -211,6 +229,8 @@ export default async function DashboardPage() {
             note: e?.note,
             repartition: rep ?? null,
             objectif: obj,
+            objectifStandard: breakdownMois.standard,
+            objectifsComptes: objCompteMois,
           };
         });
 

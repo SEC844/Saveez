@@ -4,10 +4,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Pencil, CalendarDays, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import AddEpargneModal from "@/components/dashboard/AddEpargneModal";
-import type { EpargneMensuelle, Compte, Imprevu } from "@prisma/client";
+import type { Compte, Imprevu } from "@prisma/client";
 
-const MOIS_LABELS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
-const MOIS_LABELS_FULL = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const MOIS_LABELS_SHORT = ["Jan", "Fev", "Mar", "Avr", "Mai", "Jun", "Jul", "Aou", "Sep", "Oct", "Nov", "Dec"];
+const MOIS_LABELS_FULL = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
 
 interface EntreeMois {
   annee: number;
@@ -16,6 +16,9 @@ interface EntreeMois {
   note?: string | null;
   repartition?: Record<string, number> | null;
   objectif: number;
+  // Objectifs propres a ce mois pour la modale d'edition
+  objectifStandard?: number;
+  objectifsComptes?: Record<string, number>;
 }
 
 interface PlacementsAnnuelsProps {
@@ -33,6 +36,8 @@ interface EditState {
   montant?: number;
   note?: string;
   repartition?: Record<string, number>;
+  objectifStandard?: number;
+  objectifsComptes?: Record<string, number>;
 }
 
 export default function PlacementsAnnuels({
@@ -50,7 +55,6 @@ export default function PlacementsAnnuels({
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
-  // Construire les 12 mois — mois futurs non saisis = vide
   const moisRows = Array.from({ length: 12 }, (_, i) => {
     const m = i + 1;
     const entree = entrees.find((e) => e.mois === m);
@@ -60,7 +64,7 @@ export default function PlacementsAnnuels({
 
   const totalSaisi = entrees.reduce((s, e) => s + (e.montant ?? 0), 0);
   const totalObjectif = entrees
-    .filter((e) => !( annee === currentYear && e.mois > currentMonth))
+    .filter((e) => !(annee === currentYear && e.mois > currentMonth))
     .reduce((s, e) => s + e.objectif, 0);
   const boni = entrees.filter((e) => e.montant !== undefined && e.montant >= e.objectif).length;
   const deficit = entrees.filter((e) => e.montant !== undefined && e.montant < e.objectif).length;
@@ -73,6 +77,9 @@ export default function PlacementsAnnuels({
       montant: row.entree?.montant,
       note: row.entree?.note ?? undefined,
       repartition: rep !== null ? rep : undefined,
+      // Utilise les objectifs specifiques au mois selectionne
+      objectifStandard: row.entree?.objectifStandard,
+      objectifsComptes: row.entree?.objectifsComptes,
     });
     setEditOpen(true);
   }
@@ -92,17 +99,17 @@ export default function PlacementsAnnuels({
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
-            {deficit} en déficit
+            {deficit} en deficit
           </span>
         </div>
       </div>
 
       {/* Tableau */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-        {/* Résumé haut */}
+        {/* Resume haut */}
         <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-zinc-800 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
           <div className="px-4 py-3 text-center">
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wide mb-0.5">Total épargné</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wide mb-0.5">Total epargne</p>
             <p className="text-sm font-bold text-zinc-900 dark:text-white">{totalSaisi.toLocaleString("fr-FR")} €</p>
           </div>
           <div className="px-4 py-3 text-center">
@@ -110,7 +117,7 @@ export default function PlacementsAnnuels({
             <p className="text-sm font-bold text-zinc-900 dark:text-white">{totalObjectif.toLocaleString("fr-FR")} €</p>
           </div>
           <div className="px-4 py-3 text-center">
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wide mb-0.5">Écart cumulé</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wide mb-0.5">Ecart cumule</p>
             <p className={`text-sm font-bold ${totalSaisi - totalObjectif >= 0 ? "text-emerald-500" : "text-red-400"}`}>
               {totalSaisi - totalObjectif >= 0 ? "+" : ""}{(totalSaisi - totalObjectif).toLocaleString("fr-FR")} €
             </p>
@@ -122,9 +129,9 @@ export default function PlacementsAnnuels({
           <thead>
             <tr className="border-b border-zinc-100 dark:border-zinc-800">
               <th className="text-left px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Mois</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Épargné</th>
+              <th className="text-right px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Epargne</th>
               <th className="text-right px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide hidden sm:table-cell">Objectif</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Écart</th>
+              <th className="text-right px-4 py-2.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Ecart</th>
               <th className="px-3 py-2.5 w-10" />
             </tr>
           </thead>
@@ -157,7 +164,7 @@ export default function PlacementsAnnuels({
                     </div>
                   </td>
 
-                  {/* Montant épargné */}
+                  {/* Montant epargne */}
                   <td className="px-4 py-3 text-right">
                     {hasSaisie ? (
                       <span className="font-semibold text-zinc-900 dark:text-white">
@@ -172,14 +179,14 @@ export default function PlacementsAnnuels({
                   <td className="px-4 py-3 text-right hidden sm:table-cell">
                     {entree?.objectif !== undefined && entree.objectif > 0 ? (
                       <span className="text-zinc-400 dark:text-zinc-500">
-                        {(entree.objectif).toLocaleString("fr-FR")} €
+                        {entree.objectif.toLocaleString("fr-FR")} €
                       </span>
                     ) : (
                       <span className="text-zinc-300 dark:text-zinc-600 text-xs">—</span>
                     )}
                   </td>
 
-                  {/* Écart */}
+                  {/* Ecart */}
                   <td className="px-4 py-3 text-right">
                     {diff !== null ? (
                       <span className={`flex items-center justify-end gap-1 font-medium text-xs ${diff >= 0 ? "text-emerald-500" : "text-red-400"}`}>
@@ -210,12 +217,12 @@ export default function PlacementsAnnuels({
         </table>
       </div>
 
-      {/* Modale d'édition contrôlée */}
+      {/* Modale d'edition controlee — utilise les objectifs du mois selectionne */}
       {editState && (
         <AddEpargneModal
           comptesActifs={comptesActifs}
-          objectifStandard={objectifStandard}
-          objectifsComptes={objectifsComptes}
+          objectifStandard={editState.objectifStandard ?? objectifStandard}
+          objectifsComptes={editState.objectifsComptes ?? objectifsComptes}
           imprevusActifs={imprevusActifs}
           editOpen={editOpen}
           onEditOpenChange={setEditOpen}

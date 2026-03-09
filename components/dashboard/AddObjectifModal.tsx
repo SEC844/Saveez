@@ -332,8 +332,10 @@ export default function AddObjectifModal({ revenuNet, comptes = [] }: AddObjecti
           </div>
           
           {/* Hidden inputs pour soumettre les dates au serveur */}
+          {/* dateDebut = 1er jour du mois de debut */}
           <input type="hidden" name="dateDebut" value={new Date(anneeDebut, moisDebut - 1, 1).toISOString().split("T")[0]} />
-          <input type="hidden" name="dateFin" value={new Date(anneeFin, moisFin - 1, 1).toISOString().split("T")[0]} />
+          {/* dateFin = dernier jour du mois de fin (day 0 du mois suivant) */}
+          <input type="hidden" name="dateFin" value={new Date(anneeFin, moisFin, 0).toISOString().split("T")[0]} />
 
           <AnimatePresence>
             {state?.error && (
