@@ -1,6 +1,6 @@
 # 📋 STRUCTURE.md — Référentiel Technique Saveez
 
-> **Version :** 1.0.5  
+> **Version :** 1.0.6  
 > **Date :** Mars 2026  
 > **Repo :** https://github.com/SEC844/Saveez.git  
 > **Branches :** `dev` (développement) → `main` (production)
@@ -9,7 +9,24 @@
 
 ## 🆕 CHANGELOG
 
-### v1.0.5 (Mars 2026) — Corrections UX Comptes & Imprévus
+### v1.0.6 (Mars 2026) — Bug fixes comptes & répartition imprévus
+**Corrections de bugs :**
+- 🐛 **Retrait compte = +100 sur solde global** : `retraitCompteAction` décrémentait `compte.solde` mais pas `user.epargneActuelle`. Conséquence : `epargneStandard = epargneActuelle - totalComptesActifs` augmentait du montant retiré. Fix : `user.epargneActuelle { decrement: montant }` ajouté à la $transaction.
+- 🐛 **Répartition imprévus multiples** : l'agrégation FIFO global ne respectait pas la ventilation par imprevu. Fix : stockage individuel (`imprevu_${id}` dans le JSON repartition) + recalcul par somme directe. Compat ascendante avec l'ancien format FIFO.
+- 🐛 **Transfert entre comptes** : le select `compteDestinationId` n'avait pas d'attribut `name` — seul un hidden input state-React publiait la valeur. Fix : `name="compteDestinationId"` placé directement sur le `<select>`, hidden input supprimé.
+- 🐛 **Compte désactivé impossible à réactiver** : les comptes inactifs étaient filtrés et jamais affichés. Fix : bannière avec bouton "Afficher/Masquer" + section comptes désactivés avec menu ⋯ Activer.
+
+**Nouvelles règles métier :**
+- ✨ **Supprimer si 0€** : si un compte a un solde de 0€, le menu ⋯ affiche "Supprimer" au lieu de "Désactiver" (appelle `deleteCompteAction`).
+- ✨ **Proposer suppression après vidage** : si un retrait ou transfert vide intégralement un compte, la modale propose de le supprimer (boutons Supprimer / Garder).
+- ✨ **Section comptes désactivés** : bannière "X compte(s) désactivé(s)" + bouton "Afficher" → section animée avec les comptes inactifs (historique accessible, menu ⋯ avec Activer/Supprimer).
+
+**Technique :**
+- `app/actions/compte.ts` : `retraitCompteAction` inclut `user.update({ epargneActuelle: { decrement } })` ; `CompteMenu` utilise `deleteCompteAction` via `useTransition`
+- `app/actions/epargne-mensuelle.ts` : nouveau format de stockage `imprevu_${id}` ; recalcul hybride (direct + FIFO legacy)
+- `components/dashboard/CompteActionModal.tsx` : fix select `name`, `deleteCompteAction` import, état `proposeDelete`
+- `app/comptes/ComptesClient.tsx` : `showInactifs` state, section inactifs animée, `CompteMenu` refactorisé
+
 **Corrections de bugs :**
 - 🐛 **Imprévus répartition** : les lignes individuelles `repartition_imprevu_${id}` du formulaire n'étaient pas lues par le serveur (seulement `repartition_imprevus` global). Fix : agrégation des lignes individuelles avant stockage.
 - 🐛 **Solde initial compte** : créer un compte avec un solde initial déduisait incorrectement l'épargne standard. Fix : `createCompteAction` incrémente désormais `User.epargneActuelle` lors d'un solde initial > 0.

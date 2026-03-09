@@ -135,9 +135,16 @@ export async function retraitCompteAction(
     }
 
     await prisma.$transaction([
+        // Décrémenter le solde du compte
         prisma.compte.update({
             where: { id: compteId },
             data: { solde: { decrement: montant } },
+        }),
+        // Décrémenter également epargneActuelle pour garder
+        // epargneStandard = epargneActuelle - totalComptesActifs - soldeInactifs cohérent
+        prisma.user.update({
+            where: { id: userId },
+            data: { epargneActuelle: { decrement: montant } },
         }),
         prisma.transaction.create({
             data: {

@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState, useEffect, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { retraitCompteAction, transfertCompteAction } from "@/app/actions/compte";
-import { ArrowDownLeft, ArrowRightLeft, Loader2, CheckCircle } from "lucide-react";
+import { retraitCompteAction, transfertCompteAction, deleteCompteAction } from "@/app/actions/compte";
+import { ArrowDownLeft, ArrowRightLeft, Loader2, CheckCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Compte } from "@prisma/client";
 
@@ -22,22 +22,43 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
 
   const [montant, setMontant] = useState("");
   const [note, setNote] = useState("");
-  const [compteDestId, setCompteDestId] = useState(autresComptes[0]?.id || "");
+  // Propose suppression si le compte est vidé à l'issue de l'opération
+  const [proposeDelete, setProposeDelete] = useState(false);
+  const [isDeleting, startDelete] = useTransition();
 
   const state = mode === "retrait" ? stateRetrait : stateTransfert;
   const isPending = isPendingRetrait || isPendingTransfert;
 
+  function resetForm() {
+    setMontant("");
+    setNote("");
+    setMode("retrait");
+    setProposeDelete(false);
+  }
+
   useEffect(() => {
     if (state?.success) {
+      const montantNum = parseFloat(montant);
+      // Si l'utilisateur a retiré/transféré la totalité du solde, proposer la suppression
+      if (!isNaN(montantNum) && Math.abs(montantNum - compte.solde) < 0.01) {
+        setProposeDelete(true);
+        return; // ne pas fermer automatiquement
+      }
       const timeout = setTimeout(() => {
         setOpen(false);
-        setMontant("");
-        setNote("");
-        setMode("retrait");
+        resetForm();
       }, 800);
       return () => clearTimeout(timeout);
     }
-  }, [state]);
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleDelete() {
+    startDelete(async () => {
+      await deleteCompteAction(compte.id);
+      setOpen(false);
+      resetForm();
+    });
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -85,9 +106,8 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
         >
           <input type="hidden" name="compteId" value={compte.id} />
           <input type="hidden" name="compteSourceId" value={compte.id} />
-          {mode === "transfert" && <input type="hidden" name="compteDestinationId" value={compteDestId} />}
 
-          {/* Compte destination (si transfert) */}
+          {/* Compte destination (si transfert) — name sur le select directement pour fiabilité FormData */}
           {mode === "transfert" && autresComptes.length > 0 && (
             <div>
               <label htmlFor="compteDest" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
@@ -95,8 +115,8 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
               </label>
               <select
                 id="compteDest"
-                value={compteDestId}
-                onChange={(e) => setCompteDestId(e.target.value)}
+                name="compteDestinationId"
+                defaultValue={autresComptes[0]?.id || ""}
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-400"
               >
                 {autresComptes.map((c) => (
@@ -154,7 +174,7 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
           )}
 
           {/* Succès */}
-          {state?.success && (
+          {state?.success && !proposeDelete && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -167,7 +187,40 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
             </motion.div>
           )}
 
-          {/* Bouton submit */}
+          {/* Proposer suppression si compte vidé */}
+          {proposeDelete && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 space-y-3"
+            >
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Le compte <span className="font-semibold">{compte.label}</span> est maintenant vide.
+                Voulez-vous le supprimer ?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Supprimer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); resetForm(); }}
+                  className="flex-1 h-9 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  Garder
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Bouton submit — masqué si l'opération est terminée (succès ou prop. suppression) */}
+          {!state?.success && (
           <button
             type="submit"
             disabled={isPending || (mode === "transfert" && autresComptes.length === 0)}
@@ -184,6 +237,7 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
               "Effectuer le transfert"
             )}
           </button>
+          )}
 
           {mode === "transfert" && autresComptes.length === 0 && (
             <p className="text-xs text-zinc-400 text-center">

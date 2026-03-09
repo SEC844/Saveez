@@ -44,21 +44,24 @@ export async function upsertEpargneMensuelleAction(
   }
 
   // Imprévus actifs — chaque ligne du formulaire est `repartition_imprevu_${id}`
-  // On les somme pour alimenter la clé "imprevus" utilisée par le moteur FIFO
+  // On stocke chaque montant individuellement pour respecter l'intention de l'utilisateur.
+  // (L'ancien format utilisait une clé agrégée "imprevus" distribuée en FIFO — déprécié)
   const imprevusActifsPourRep = await prisma.imprevu.findMany({
     where: { userId, estSolde: false },
   });
-  let totalImprevusRaw = 0;
   for (const imp of imprevusActifsPourRep) {
     const val = formData.get(`repartition_imprevu_${imp.id}`);
-    if (val !== null) totalImprevusRaw += parseFloat(val as string) || 0;
+    if (val !== null) {
+      const amount = parseFloat(val as string) || 0;
+      if (amount > 0) repartitionRaw[`imprevu_${imp.id}`] = amount;
+    }
   }
-  // Compatibilité avec l'ancien champ unique "repartition_imprevus"
+  // Compatibilité legacy : ancien champ unique "repartition_imprevus"
   const imprevusRawLegacy = formData.get("repartition_imprevus");
-  if (totalImprevusRaw === 0 && imprevusRawLegacy !== null && imprevusRawLegacy !== "") {
-    totalImprevusRaw = parseFloat(imprevusRawLegacy as string) || 0;
+  if (imprevusRawLegacy !== null && imprevusRawLegacy !== "") {
+    const legacyTotal = parseFloat(imprevusRawLegacy as string) || 0;
+    if (legacyTotal > 0) repartitionRaw["imprevus"] = legacyTotal;
   }
-  if (totalImprevusRaw > 0) repartitionRaw["imprevus"] = totalImprevusRaw;
 
   const hasRepartition = Object.keys(repartitionRaw).length > 0;
   const repartition = hasRepartition ? repartitionRaw : undefined;
@@ -120,29 +123,55 @@ export async function upsertEpargneMensuelleAction(
   }
 
   // ── Recalcul du montantRembourse sur les imprévus ─────────────────────────
-  // La source de vérité est maintenant la somme de repartition.imprevus
-  // enregistrée sur chaque mois, distribuée en FIFO sur les imprévus actifs.
+  // Nouveau format : chaque mois stocke `imprevu_${id}` individuellement.
+  // Ancien format (legacy) : clé agrégée `imprevus` distribuée en FIFO.
   const [toutes, imprévus] = await Promise.all([
     prisma.epargneMensuelle.findMany({ where: { userId } }),
     prisma.imprevu.findMany({ where: { userId }, orderBy: [{ anneeDebut: "asc" }, { moisDebut: "asc" }] }),
   ]);
 
-  // Calcul du total global alloué aux imprévus sur tous les mois enregistrés
-  const totalAlloueImprévus = toutes.reduce((sum, e) => {
-    const rep = e.repartition as Record<string, number> | null;
-    return sum + (rep?.imprevus ?? 0);
-  }, 0);
+  // Étape 1 — Somme directe par imprevu (nouveau format)
+  const perImprevuTotal: Record<string, number> = {};
+  for (const imp of imprévus) perImprevuTotal[imp.id] = 0;
 
-  // Distribution FIFO : on remplit chaque imprévus dans l'ordre
-  let restant = totalAlloueImprévus;
+  for (const entry of toutes) {
+    const rep = entry.repartition as Record<string, number> | null;
+    if (!rep) continue;
+    for (const key of Object.keys(rep)) {
+      if (key.startsWith("imprevu_")) {
+        const impId = key.slice("imprevu_".length);
+        if (perImprevuTotal[impId] !== undefined) {
+          perImprevuTotal[impId] += rep[key];
+        }
+      }
+    }
+  }
+
+  // Étape 2 — Distribution FIFO pour les entrées legacy (clé "imprevus" sans clés individuelles)
+  for (const entry of toutes) {
+    const rep = entry.repartition as Record<string, number> | null;
+    if (!rep || rep.imprevus === undefined) continue;
+    // Ignorer si l'entrée a déjà des clés individuelles (nouveau format)
+    if (Object.keys(rep).some((k) => k.startsWith("imprevu_"))) continue;
+    // Distribuer en FIFO sur les montants restants
+    let restant = rep.imprevus;
+    for (const imp of imprévus) {
+      const remaining = Math.max(0, imp.montantTotal - perImprevuTotal[imp.id]);
+      const fill = Math.min(remaining, restant);
+      perImprevuTotal[imp.id] += fill;
+      restant -= fill;
+      if (restant <= 0) break;
+    }
+  }
+
+  // Étape 3 — Appliquer les résultats
   for (const imp of imprévus) {
-    const rembourse = Math.min(imp.montantTotal, restant);
+    const rembourse = Math.min(imp.montantTotal, Math.round(perImprevuTotal[imp.id] * 100) / 100);
     const estSolde = rembourse >= imp.montantTotal;
     await prisma.imprevu.update({
       where: { id: imp.id },
-      data: { montantRembourse: Math.round(rembourse * 100) / 100, estSolde },
+      data: { montantRembourse: rembourse, estSolde },
     });
-    restant = Math.max(0, restant - rembourse);
   }
 
   // ── Mise à jour de l'épargne actuelle par delta ──────────────────────────

@@ -2,13 +2,13 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Plane, Star, PiggyBank, Activity, History, Plus, ChevronDown, MoreHorizontal, Pencil, Power } from "lucide-react";
+import { Wallet, Plane, Star, PiggyBank, Activity, History, Plus, ChevronDown, MoreHorizontal, Pencil, Power, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import AddCompteModal from "@/components/dashboard/AddCompteModal";
 import EditCompteModal from "@/components/dashboard/EditCompteModal";
 import CompteActionModal from "@/components/dashboard/CompteActionModal";
 import CompteHistoriqueModal from "@/components/dashboard/CompteHistoriqueModal";
-import { toggleCompteAction } from "@/app/actions/compte";
+import { toggleCompteAction, deleteCompteAction } from "@/app/actions/compte";
 import type { Compte } from "@prisma/client";
 
 type Props = {
@@ -104,6 +104,7 @@ function CompteMenu({ compte }: { compte: Compte }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [toggling, startToggle] = useTransition();
+  const [deleting, startDelete] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,6 +121,16 @@ function CompteMenu({ compte }: { compte: Compte }) {
       await toggleCompteAction(compte.id);
     });
   }
+
+  function handleDelete() {
+    setMenuOpen(false);
+    startDelete(async () => {
+      await deleteCompteAction(compte.id);
+    });
+  }
+
+  // Règle : si solde = 0 → proposer suppression ; sinon activer/désactiver
+  const canDelete = compte.solde === 0;
 
   return (
     <div ref={ref} className="relative">
@@ -148,16 +159,30 @@ function CompteMenu({ compte }: { compte: Compte }) {
               Modifier
             </button>
             <div className="border-t border-zinc-100 dark:border-zinc-800" />
-            <button
-              onClick={handleToggle}
-              disabled={toggling}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-            >
-              <Power size={13} className={compte.actif ? "text-red-500" : "text-emerald-500"} />
-              <span className={compte.actif ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}>
-                {compte.actif ? "Desactiver" : "Activer"}
-              </span>
-            </button>
+
+            {canDelete ? (
+              // Compte à 0€ → proposer suppression
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={13} className="text-red-500" />
+                <span className="text-red-600 dark:text-red-400">Supprimer</span>
+              </button>
+            ) : (
+              // Compte avec solde → activer / désactiver
+              <button
+                onClick={handleToggle}
+                disabled={toggling}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                <Power size={13} className={compte.actif ? "text-red-500" : "text-emerald-500"} />
+                <span className={compte.actif ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}>
+                  {compte.actif ? "Desactiver" : "Activer"}
+                </span>
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -173,8 +198,10 @@ function CompteMenu({ compte }: { compte: Compte }) {
 
 export default function ComptesClient({ comptes, epargneStandard, soldeComptesInactifs }: Props) {
   const comptesActifs = comptes.filter((c) => c.actif);
+  const comptesInactifs = comptes.filter((c) => !c.actif);
   const totalComptesActifs = comptesActifs.reduce((sum, c) => sum + c.solde, 0);
   const total = epargneStandard + totalComptesActifs + soldeComptesInactifs;
+  const [showInactifs, setShowInactifs] = useState(false);
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -209,12 +236,23 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
         </Card>
       </motion.div>
 
-      {/* Comptes inactifs avec solde */}
-      {soldeComptesInactifs !== 0 && (
+      {/* Comptes inactifs — banniere avec bouton Afficher */}
+      {comptesInactifs.length > 0 && (
         <Card className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            <span className="font-medium">{Math.abs(soldeComptesInactifs).toLocaleString("fr-FR")} €</span> present sur des comptes desactives.
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {soldeComptesInactifs > 0 && (
+                <><span className="font-medium">{soldeComptesInactifs.toLocaleString("fr-FR")} €</span> présent sur{" "}</>
+              )}
+              <span className="font-medium">{comptesInactifs.length}</span> compte{comptesInactifs.length > 1 ? "s" : ""} désactivé{comptesInactifs.length > 1 ? "s" : ""}.
+            </p>
+            <button
+              onClick={() => setShowInactifs((v) => !v)}
+              className="flex-shrink-0 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {showInactifs ? "Masquer" : "Afficher"}
+            </button>
+          </div>
         </Card>
       )}
 
@@ -339,6 +377,81 @@ export default function ComptesClient({ comptes, epargneStandard, soldeComptesIn
           </Card>
         </motion.div>
       )}
+
+      {/* Comptes désactivés — visibles via le bouton "Afficher" */}
+      <AnimatePresence>
+        {showInactifs && comptesInactifs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4 overflow-hidden"
+          >
+            <div className="pt-2">
+              <h2 className="text-lg font-semibold text-zinc-400 dark:text-zinc-500 tracking-tight mb-4">
+                Comptes Désactivés
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {comptesInactifs.map((compte, index) => {
+                const Icon = ICONS[compte.type as keyof typeof ICONS] || Star;
+                const rgb = hexToRgb(compte.couleur || "#8B5CF6");
+
+                return (
+                  <motion.div
+                    key={compte.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                  >
+                    <Card
+                      className="p-5 border opacity-60 transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${rgb.r},${rgb.g},${rgb.b},0.06) 0%, rgba(${rgb.r},${rgb.g},${rgb.b},0.03) 100%)`,
+                        borderColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.15)`,
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg" style={{ backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.1)` }}>
+                            <Icon className="w-5 h-5" style={{ color: compte.couleur }} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-white">{compte.label}</p>
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500">Désactivé · {compte.type}</p>
+                          </div>
+                        </div>
+                        <CompteMenu compte={compte} />
+                      </div>
+
+                      <div className="mt-2">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Solde</p>
+                        <p className="text-2xl font-bold tracking-tight text-zinc-400 dark:text-zinc-500">
+                          {compte.solde.toLocaleString("fr-FR")} €
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <CompteHistoriqueModal
+                          compteId={compte.id}
+                          compteLabel={compte.label}
+                          trigger={
+                            <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors">
+                              <History size={14} />
+                              Historique
+                            </button>
+                          }
+                        />
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
