@@ -1,9 +1,35 @@
 # 📋 STRUCTURE.md — Référentiel Technique Saveez
 
-> **Version :** 1.0.3  
+> **Version :** 1.0.4  
 > **Date :** Mars 2026  
 > **Repo :** https://github.com/SEC844/Saveez.git  
 > **Branches :** `dev` (développement) → `main` (production)
+
+---
+
+## 🆕 CHANGELOG
+
+### v1.0.4 (Mars 2026) — Système de Comptes avec Soldes
+**Fonctionnalités :**
+- ✅ Ajout du champ `solde` au modèle `Compte` (migration Prisma)
+- ✅ Création automatique de 2 comptes système : "Standard" et "Imprévus"
+- ✅ Mise à jour des soldes lors de la répartition de l'épargne mensuelle
+- ✅ Nouvelle page `/comptes` : Vue d'ensemble des soldes par compte
+- ✅ Ajout de l'entrée "Comptes" dans la Sidebar et la navigation mobile
+- ✅ Gestion des prélèvements : Les imprévus décrémèntent le compte Standard
+- ✅ Protection des comptes système (impossible de les supprimer/désactiver)
+- ✅ Reset amélioré : Supprime les comptes non-système, réinitialise les soldes
+
+**Améliorations ergonomiques :**
+- 🎨 Interface Apple-like : Cartes animées avec Framer Motion
+- 📊 Visualisation des pourcentages par compte (barres de progression)
+- 🎯 Icônes distinctes par type de compte (Standard, Imprévus, Vacances, Autre)
+- 🌈 Couleurs dégradées par type de compte
+- ⚡ Animations fluides (stagger effect sur les cartes)
+
+**Technique :**
+- Migration : `20260309091635_add_solde_to_comptes`
+- Mise à jour : `epargne-mensuelle.ts`, `imprevu.ts`, `compte.ts`, `user-settings.ts`
 
 ---
 
@@ -31,7 +57,7 @@
 - Suivi des mises de côté mensuelles
 - Gestion des imprévus avec remboursement mensualisé
 - Définition d'objectifs temporels (vacances, projets)
-- Système de comptes multiples (standard, vacances, autres)
+- **Système de comptes multiples avec soldes** (standard, imprévus, vacances, autres)
 - Projections financières et statistiques avancées
 - Interface Apple-like (minimaliste, smooth, dark/light mode)
 
@@ -322,21 +348,28 @@ model Objectif {
 }
 ```
 
-#### **5. Compte** (Comptes spéciaux : vacances, autre)
+#### **5. Compte** (Comptes distincts avec soldes)
 ```prisma
 model Compte {
   id        String     @id @default(cuid())
   userId    String
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  type      String     // "vacances" | "autre"
-  label     String     // Nom du compte
+  type      String     // "standard" | "imprevus" | "vacances" | "autre"
+  label     String     // Nom du compte (ex: "Vacances été 2026", "Épargne standard")
   actif     Boolean    @default(true)
+  solde     Float      @default(0) // 🆕 Solde actuel du compte (€)
   
   objectifs Objectif[]
   createdAt DateTime   @default(now())
 }
 ```
+
+**Types de comptes :**
+- **standard** : Épargne de base (compte système, automatiquement créé)
+- **imprevus** : Pool de remboursement des imprévus (compte système, automatiquement créé)
+- **vacances** : Comptes créés par l'utilisateur pour les objectifs vacances
+- **autre** : Comptes personnalisés pour d'autres objectifs
 
 #### **6. ActionLog** (Journal d'historique)
 ```prisma
