@@ -12,30 +12,33 @@ export default async function ComptesPage() {
 
   const userId = session.user.id;
 
-  // Récupérer tous les comptes de l'utilisateur
+  // Récupérer uniquement les comptes spéciaux (vacances, autre)
+  // Standard = User.epargneActuelle, Imprévus = table Imprevu
   const comptes = await prisma.compte.findMany({
     where: { userId },
     orderBy: [
-      { type: "asc" }, // Standard → Imprévus → Vacances → Autre
+      { type: "asc" },
       { createdAt: "asc" },
     ],
   });
 
-  // Récupérer le solde total (User.epargneActuelle)
+  // Récupérer User.epargneActuelle (épargne "standard")
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: { epargneActuelle: true },
   });
 
-  // Calculer le total des soldes de comptes (pour vérification)
-  const totalSoldesComptes = comptes.reduce((sum, c) => sum + c.solde, 0);
+  // Calculer le total des comptes inactifs avec solde
+  const soldeComptesInactifs = comptes
+    .filter((c) => !c.actif && c.solde !== 0)
+    .reduce((sum, c) => sum + c.solde, 0);
 
   return (
     <DashboardShell>
       <ComptesClient
         comptes={comptes}
-        soldeTotal={user.epargneActuelle}
-        totalSoldesComptes={totalSoldesComptes}
+        epargneStandard={user.epargneActuelle}
+        soldeComptesInactifs={soldeComptesInactifs}
       />
     </DashboardShell>
   );
