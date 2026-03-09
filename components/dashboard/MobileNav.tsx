@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut, History, Target } from "lucide-react";
+import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut, History, Target, Wallet } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
+  { href: "/comptes", icon: Wallet, label: "Comptes" },
   { href: "/imprevus", icon: AlertTriangle, label: "Imprévus" },
   { href: "/projections", icon: TrendingUp, label: "Projections" },
   { href: "/objectifs", icon: Target, label: "Objectifs" },

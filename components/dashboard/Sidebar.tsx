@@ -11,6 +11,7 @@ import {
   LogOut,
   History,
   Target,
+  Wallet,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { signOut } from "next-auth/react";
@@ -19,6 +20,7 @@ import { version } from "@/package.json";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
+  { href: "/comptes", icon: Wallet, label: "Comptes" },
   { href: "/imprevus", icon: AlertTriangle, label: "Imprévus" },
   { href: "/projections", icon: TrendingUp, label: "Projections" },
   { href: "/objectifs", icon: Target, label: "Objectifs" },
