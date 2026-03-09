@@ -9,7 +9,7 @@ et visualisez vos projections de fin d'année — le tout dans une interface App
 
 [![CI](https://github.com/SEC844/Saveez/actions/workflows/ci.yml/badge.svg)](https://github.com/SEC844/Saveez/actions/workflows/ci.yml)
 [![CD](https://github.com/SEC844/Saveez/actions/workflows/cd.yml/badge.svg)](https://github.com/SEC844/Saveez/actions/workflows/cd.yml)
-[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://github.com/SEC844/Saveez/releases)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/SEC844/Saveez/releases)
 
 </div>
 
@@ -220,6 +220,8 @@ Saveez/
 
 | Version | Date       | Notes                                                                                      |
 | ------- | ---------- | ------------------------------------------------------------------------------------------ |
+| v1.0.5  | 2026-03-09 | Système de transactions (retraits/transferts), couleurs personnalisées, UX objectifs       |
+| v1.0.4  | 2026-03-09 | Comptes avec soldes, répartition automatique, page /comptes, suppression comptes système  |
 | v1.0.3  | 2026-03-08 | Fix DATABASE_URL build (Node.js startup script), fix session auth sur HTTP, Docker cleanup |
 | v1.0.2  | 2026-03-06 | Déploiement Unraid, docker-compose inline vars, README professionnel                      |
 | v1.0.1  | 2026-03-06 | Projection, historique objectif global, ConfirmDialog, onboarding epargne                  |
