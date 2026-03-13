@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { ensureUserRolesAssigned, getPermissionsFromRole } from "@/lib/rbac";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true, // Required for Docker / proxied environments
@@ -14,8 +15,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
 
+        await ensureUserRolesAssigned();
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
+          include: {
+            role: {
+              select: {
+                name: true,
+                permissions: true,
+              },
+            },
+          },
         });
 
         if (!user) return null;
@@ -27,7 +38,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!isValid) return null;
 
-        return { id: user.id, email: user.email, name: user.name ?? undefined };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name ?? undefined,
+          role: user.role?.name ?? "standard",
+          permissions: getPermissionsFromRole(user.role),
+        };
       },
     }),
   ],
@@ -53,11 +70,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role ?? "standard";
+        token.permissions = (user as { permissions?: string[] }).permissions ?? [];
+      }
       return token;
     },
     session({ session, token }) {
       if (token.id) session.user.id = token.id as string;
+      session.user.role = (token.role as string) ?? "standard";
+      session.user.permissions = Array.isArray(token.permissions)
+        ? (token.permissions as string[])
+        : [];
       return session;
     },
   },

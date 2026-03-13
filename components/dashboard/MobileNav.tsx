@@ -4,10 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut, History, Target, Wallet } from "lucide-react";
+import { Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp, LogOut, History, Target, Wallet, User, Shield } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useSession } from "next-auth/react";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
@@ -16,12 +17,18 @@ const NAV = [
   { href: "/projections", icon: TrendingUp, label: "Projections" },
   { href: "/objectifs", icon: Target, label: "Objectifs" },
   { href: "/historique", icon: History, label: "Historique" },
+  { href: "/profil", icon: User, label: "Profil" },
   { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
 export default function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { data } = useSession();
+  const canAccessAdmin = data?.user?.permissions?.includes("admin.access") ?? false;
+  const navItems = canAccessAdmin
+    ? [...NAV, { href: "/admin", icon: Shield, label: "Administration" }]
+    : NAV;
 
   return (
     <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
@@ -44,7 +51,7 @@ export default function MobileNav() {
               <span className="font-semibold text-zinc-900 dark:text-white">Saveez</span>
             </div>
             <nav className="px-3 py-4 space-y-0.5">
-              {NAV.map(({ href, icon: Icon, label }) => {
+              {navItems.map(({ href, icon: Icon, label }) => {
                 const active = pathname === href;
                 return (
                   <Link

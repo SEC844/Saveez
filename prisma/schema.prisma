@@ -19,8 +19,11 @@ model User {
   email        String   @unique
   passwordHash String
   name         String?
+  roleId       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  role Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   // Paramètres personnalisés
   objectifBase    Float  @default(400)  // Objectif de repli si aucun objectif temporel actif
@@ -38,6 +41,24 @@ model User {
   transactions      Transaction[]
 
   @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// RBAC - rôles et permissions
+// ─────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  permissions Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("roles")
 }
 
 // ─────────────────────────────────────────────

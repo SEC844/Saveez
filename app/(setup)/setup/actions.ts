@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { ensureSystemRoles } from "@/lib/rbac";
 
 export type SetupState = {
   error?: string;
@@ -36,11 +37,16 @@ export async function setupAction(
   // Hash with bcrypt (cost factor 12 — good balance of security/speed)
   const passwordHash = await bcrypt.hash(password, 12);
 
+  const { admin, standard } = await ensureSystemRoles();
+  const existingUsersCount = await prisma.user.count();
+  const roleId = existingUsersCount === 0 ? admin.id : standard.id;
+
   await prisma.user.create({
     data: {
       email,
       passwordHash,
       name: name || null,
+      roleId,
     },
   });
 

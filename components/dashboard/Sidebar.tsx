@@ -12,11 +12,14 @@ import {
   History,
   Target,
   Wallet,
+  User,
+  Shield,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { version } from "@/package.json";
+import { useSession } from "next-auth/react";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
@@ -25,11 +28,18 @@ const NAV = [
   { href: "/projections", icon: TrendingUp, label: "Projections" },
   { href: "/objectifs", icon: Target, label: "Objectifs" },
   { href: "/historique", icon: History, label: "Historique" },
+  { href: "/profil", icon: User, label: "Profil" },
   { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data } = useSession();
+  const canAccessAdmin = data?.user?.permissions?.includes("admin.access") ?? false;
+
+  const navItems = canAccessAdmin
+    ? [...NAV, { href: "/admin", icon: Shield, label: "Administration" }]
+    : NAV;
 
   return (
     <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800 h-screen sticky top-0">
@@ -45,7 +55,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ href, icon: Icon, label }) => {
+        {navItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
             <Link
