@@ -1,0 +1,324 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  roleId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  // Profil enrichi
+  avatarUrl String? // URL de l'avatar (null → initiales auto-générées)
+  bio       String? // Bio courte optionnelle
+
+  // Paramètres personnalisés
+  objectifBase    Float   @default(400)  // Objectif de repli si aucun objectif temporel actif
+  fondsSecurite   Float   @default(5000) // Palier "intouchable" (€)
+  epargneActuelle Float   @default(0)    // Solde courant (€)
+  revenuNet       Float?  // Revenu mensuel net optionnel (pour suggestions d'objectifs)
+  onboardingDone  Boolean @default(false) // Popup de configuration initiale affichée
+
+  // Relations personnelles
+  epargneMensuelles EpargneMensuelle[]
+  imprévus          Imprevu[]
+  objectifs         Objectif[]
+  actionLogs        ActionLog[]
+  comptes           Compte[]
+  transactions      Transaction[]
+
+  // Relations famille
+  membresFamille    MembreFamille[]
+  contributions     ContributionFamille[]
+
+  // Sécurité
+  twoFactor         TwoFactor?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// RBAC - rôles et permissions
+// ─────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  permissions Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("roles")
+}
+
+// ─────────────────────────────────────────────
+// Entrées mensuelles d'épargne
+// ─────────────────────────────────────────────
+
+model EpargneMensuelle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  annee   Int
+  mois    Int     // 1–12
+  montant Float   // Somme réellement mise de côté ce mois-ci (€)
+  note    String? // Note libre optionnelle
+  repartition Json? // { standard: X, [compteId]: X } répartition par objectif/compte
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, annee, mois])
+  @@map("epargne_mensuelles")
+}
+
+// ─────────────────────────────────────────────
+// Imprévus (dépenses exceptionnelles)
+// ─────────────────────────────────────────────
+
+model Imprevu {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nom                String  // Ex : "Machine à laver"
+  montantTotal       Float   // Montant total prélevé (€)
+  dureeRemboursement Int     // Durée de remboursement en mois
+  montantMensuel     Float   // = montantTotal / dureeRemboursement
+
+  moisDebut  Int // Mois (1–12) de début du remboursement
+  anneeDebut Int // Année de début du remboursement
+
+  // Suivi de progression
+  montantRembourse Float   @default(0)
+  estSolde         Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("imprévus")
+}
+
+// ─────────────────────────────────────────────
+// Objectifs d'épargne temporels
+// ─────────────────────────────────────────────
+
+model Objectif {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  montant   Float   // Montant mensuel cible (€)
+  label     String? // Description optionnelle
+  categorie String  @default("standard") // "standard" | "vacances" | "autre"
+  compteId  String? // FK → Compte (pour les objectifs vacances / autre)
+  compte    Compte? @relation(fields: [compteId], references: [id], onDelete: SetNull)
+
+  dateDebut DateTime  // Début de la période
+  dateFin   DateTime? // Fin de la période — null = sans fin
+
+  preset String? // "1m" | "3m" | "6m" | "1y" | "custom"
+
+  createdAt DateTime @default(now())
+
+  @@map("objectifs")
+}
+
+// ─────────────────────────────────────────────
+// Journal des actions (historique)
+// ─────────────────────────────────────────────
+
+model ActionLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String  // "add_epargne" | "add_imprevu" | "delete_imprevu" | "rembourser" | "add_objectif" | "update_settings" | "reset" | "admin_*" | "famille_*"
+  label   String  // Description lisible
+  montant Float?  // Montant associé (si applicable)
+  meta    String? // JSON pour données supplémentaires
+
+  createdAt DateTime @default(now())
+
+  @@map("action_logs")
+}
+
+// ─────────────────────────────────────────────
+// Comptes spéciaux personnels (vacances, autre)
+// ─────────────────────────────────────────────
+
+model Compte {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String  // "vacances" | "autre" | "famille"
+  label     String  // Nom du compte (ex: "Vacances été 2026")
+  actif     Boolean @default(true)
+  solde     Float   @default(0) // Solde actuel du compte (€)
+  couleur   String  @default("#8B5CF6") // Couleur hex du compte (pour UI)
+  familleId String? // Si défini → compte partagé avec la famille
+
+  famille                 Famille?  @relation(fields: [familleId], references: [id], onDelete: SetNull)
+  objectifs               Objectif[]
+  transactionsSource      Transaction[] @relation("TransactionSource")
+  transactionsDestination Transaction[] @relation("TransactionDestination")
+
+  createdAt DateTime @default(now())
+
+  @@map("comptes")
+}
+
+// ─────────────────────────────────────────────
+// Transactions (retraits et transferts sur comptes)
+// ─────────────────────────────────────────────
+
+model Transaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String  // "retrait" | "transfert" | "depot_repartition" | "retrait_repartition"
+  montant Float   // Montant de la transaction (€)
+  note    String? // Commentaire optionnel
+
+  compteSourceId      String? // FK → Compte source (pour transferts)
+  compteSource        Compte? @relation("TransactionSource", fields: [compteSourceId], references: [id], onDelete: SetNull)
+
+  compteDestinationId String? // FK → Compte destination (pour transferts)
+  compteDestination   Compte? @relation("TransactionDestination", fields: [compteDestinationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@map("transactions")
+}
+
+// ─────────────────────────────────────────────
+// Famille — épargne commune multi-utilisateurs
+// ─────────────────────────────────────────────
+
+model Famille {
+  id        String   @id @default(cuid())
+  name      String   // Nom de la famille (ex : "Famille Dupont")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  membres       MembreFamille[]
+  comptes       CompteFamille[]
+  comptesShared Compte[]
+  invitations   InvitationFamille[]
+
+  @@map("familles")
+}
+
+model MembreFamille {
+  familleId String
+  userId    String
+  role      String   @default("membre") // "admin" | "membre"
+  joinedAt  DateTime @default(now())
+
+  famille Famille @relation(fields: [familleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([familleId, userId])
+  @@map("membres_famille")
+}
+
+model InvitationFamille {
+  id        String   @id @default(cuid())
+  familleId String
+  email     String   // Email de la personne invitée (informatif uniquement)
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  usedAt    DateTime? // null = pas encore utilisé
+
+  createdAt DateTime @default(now())
+
+  famille Famille @relation(fields: [familleId], references: [id], onDelete: Cascade)
+
+  @@map("invitations_famille")
+}
+
+model CompteFamille {
+  id        String   @id @default(cuid())
+  familleId String
+  label     String   // Nom du compte (ex : "Vacances Grèce 2026")
+  type      String   @default("epargne_commune") // "epargne_commune" | "projet" | "vacances"
+  solde     Float    @default(0)
+  couleur   String   @default("#10B981")
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  famille       Famille               @relation(fields: [familleId], references: [id], onDelete: Cascade)
+  contributions ContributionFamille[]
+
+  @@map("comptes_famille")
+}
+
+model ContributionFamille {
+  id       String   @id @default(cuid())
+  compteId String
+  userId   String
+  montant  Float    // Montant de la contribution (négatif = retrait)
+  note     String?
+
+  createdAt DateTime @default(now())
+
+  compte CompteFamille @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contributions_famille")
+}
+
+// ─────────────────────────────────────────────
+// Sécurité
+// ─────────────────────────────────────────────
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String?
+  success   Boolean  @default(false)
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([ip])
+  @@index([createdAt])
+  @@map("login_attempts")
+}
+
+model TwoFactor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  secret      String
+  enabled     Boolean  @default(false)
+  backupCodes String[]
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
+}

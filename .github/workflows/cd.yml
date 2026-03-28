@@ -1,0 +1,75 @@
+name: CD — Docker Build & Push
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*.*.*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-push:
+    name: Build & Push Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Extraction des métadonnées (tag, label) pour l'image Docker
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Tag "latest" sur chaque push main
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Tag de version semver sur les tags git (ex: v1.2.3 → 1.2.3, 1.2, 1)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            # SHA court pour la traçabilité
+            type=sha,prefix=sha-,format=short
+
+      # Login au GitHub Container Registry
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Activation du builder multi-plateforme
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Sur push main : linux/amd64 uniquement (rapide, suffisant pour usage local)
+      # Sur tag semver : linux/amd64 + linux/arm64 (Apple Silicon, déploiement prod)
+      - name: Determine platforms
+        id: platforms
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+          else
+            echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+          fi
+
+      # Build et push avec cache GitHub Actions
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: ${{ steps.platforms.outputs.platforms }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: runner
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,73 @@
+# ==============================================================================
+#  docker-compose.yml — Saveez
+#
+#  ► Lancement rapide (dev local) :
+#      docker compose up --build
+#
+#  ► Personnaliser les credentials :
+#      Copie .env.example en .env et ajuste les valeurs, puis :
+#      docker compose --env-file .env up --build
+#
+#  ► Déploiement (Unraid / VPS) :
+#      Commentez "build: ." et remplacez saveez:local par l'image GHCR
+#      Mettez DATABASE_URL avec l'URL de votre PostgreSQL externe
+#
+#  ⚠️  Génère NEXTAUTH_SECRET avec : openssl rand -base64 32
+# ==============================================================================
+
+services:
+
+  # ── Base de données PostgreSQL ────────────────────────────────────────────────
+  # Supprimez ce bloc si vous utilisez un PostgreSQL externe
+  db:
+    image: postgres:16-alpine
+    container_name: saveez_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-saveez_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saveez_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-saveez_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-saveez_user} -d ${POSTGRES_DB:-saveez_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Application Saveez ────────────────────────────────────────────────────────
+  saveez:
+    build: .
+    image: saveez:local
+    container_name: saveez
+    restart: unless-stopped
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    environment:
+
+      # ── Base de données ───────────────────────────────────────────────────────
+      # Pour PostgreSQL local (service "db" ci-dessus) : laissez tel quel.
+      # Pour PostgreSQL externe : remplacez par votre URL complète.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://saveez_user:saveez_dev_password@db:5432/saveez_db?schema=public}
+
+      # ── Auth ──────────────────────────────────────────────────────────────────
+      # ⚠ Générer avec : openssl rand -base64 32
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-CHANGE_ME_GENERATE_WITH_OPENSSL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+
+      # ── Application ───────────────────────────────────────────────────────────
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    ports:
+      - "${PORT:-3000}:3000"
+
+    command: ["node", "scripts/start.js"]
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+    driver: local
