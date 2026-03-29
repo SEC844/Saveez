@@ -1,21 +1,23 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Lock, Users } from "lucide-react";
+import { Lock, Settings, Users } from "lucide-react";
 
 interface AdminTabsProps {
   usersTab: ReactNode;
   securityTab: ReactNode;
+  settingsTab: ReactNode;
 }
 
 const tabs = [
   { id: "users", label: "Utilisateurs & Rôles", icon: Users },
   { id: "security", label: "Sécurité", icon: Lock },
+  { id: "settings", label: "Paramètres", icon: Settings },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
-export default function AdminTabs({ usersTab, securityTab }: AdminTabsProps) {
+export default function AdminTabs({ usersTab, securityTab, settingsTab }: AdminTabsProps) {
   const [active, setActive] = useState<TabId>("users");
 
   return (
@@ -41,6 +43,7 @@ export default function AdminTabs({ usersTab, securityTab }: AdminTabsProps) {
       {/* Content */}
       {active === "users" && usersTab}
       {active === "security" && securityTab}
+      {active === "settings" && settingsTab}
     </div>
   );
 }

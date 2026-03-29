@@ -13,7 +13,6 @@ import {
   History,
   Target,
   Wallet,
-  User,
   Shield,
   Users,
 } from "lucide-react";
@@ -21,6 +20,12 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { version } from "@/package.json";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Tableau de bord" },
@@ -30,8 +35,6 @@ const NAV = [
   { href: "/objectifs", icon: Target, label: "Objectifs" },
   { href: "/famille", icon: Users, label: "Famille" },
   { href: "/historique", icon: History, label: "Historique" },
-  { href: "/profil", icon: User, label: "Profil" },
-  { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
 // ─── Avatar mini ──────────────────────────────────────────────────────────────
@@ -81,9 +84,10 @@ export default function Sidebar({ canAccessAdmin, userName, userEmail = "", user
         <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-white flex items-center justify-center text-base">
           💰
         </div>
-        <span className="font-semibold text-zinc-900 dark:text-white tracking-tight">
+        <span className="font-semibold text-zinc-900 dark:text-white tracking-tight flex-1">
           Saveez
         </span>
+        <ThemeToggle />
       </div>
 
       {/* Nav */}
@@ -116,7 +120,7 @@ export default function Sidebar({ canAccessAdmin, userName, userEmail = "", user
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+      <div className="px-3 py-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
         {/* Mini profil */}
         <Link
           href="/profil"
@@ -124,27 +128,42 @@ export default function Sidebar({ canAccessAdmin, userName, userEmail = "", user
         >
           <MiniAvatar name={userName} email={userEmail} avatarUrl={userAvatarUrl} />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-zinc-900 dark:text-white truncate leading-tight">
+            <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate leading-tight">
               {userName ?? userEmail}
             </p>
-            {userName && (
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate leading-tight">{userEmail}</p>
-            )}
           </div>
         </Link>
 
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-          >
-            <LogOut size={15} />
-            <span>Déconnexion</span>
-          </button>
-          <ThemeToggle />
-        </div>
-        <div className="px-3 pb-1">
-          <span className="text-[10px] text-zinc-300 dark:text-zinc-600 font-mono select-none">
+        <div className="flex items-center gap-1 px-1">
+          <TooltipProvider>
+            {/* Paramètres */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/parametres"
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <Settings size={15} />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top">Paramètres</TooltipContent>
+            </Tooltip>
+
+            {/* Déconnexion */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  <LogOut size={15} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Déconnexion</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <span className="ml-auto text-[10px] text-zinc-300 dark:text-zinc-600 font-mono select-none pr-1">
             v{version}
           </span>
         </div>

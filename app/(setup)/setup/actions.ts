@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { ensureSystemRoles } from "@/lib/rbac-server";
+import { isRegistrationEnabled } from "@/lib/app-settings";
 
 export type SetupState = {
   error?: string;
@@ -34,11 +35,20 @@ export async function setupAction(
     return { error: "Adresse e-mail invalide." };
   }
 
+  // Vérifier si l'inscription est autorisée (sauf pour le premier utilisateur)
+  const existingCount = await prisma.user.count();
+  if (existingCount > 0) {
+    const regEnabled = await isRegistrationEnabled();
+    if (!regEnabled) {
+      return { error: "La création de compte est désactivée par l'administrateur." };
+    }
+  }
+
   // Hash with bcrypt (cost factor 12 — good balance of security/speed)
   const passwordHash = await bcrypt.hash(password, 12);
 
   const { admin, standard } = await ensureSystemRoles();
-  const existingUsersCount = await prisma.user.count();
+  const existingUsersCount = existingCount;
   const roleId = existingUsersCount === 0 ? admin.id : standard.id;
 
   await prisma.user.create({

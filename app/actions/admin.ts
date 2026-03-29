@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/authz";
 import { PERMISSION_CATALOG } from "@/lib/rbac";
 import { isLastAdmin } from "@/lib/rbac-server";
+import { setSetting } from "@/lib/app-settings";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
@@ -281,6 +282,20 @@ export async function updateRoleAction(
   });
 
   revalidatePath("/admin");
+  return { success: true };
+}
+
+// ─── Paramètres applicatifs ──────────────────────────────────────────────────
+
+export async function toggleRegistrationAction(
+  _prev: AdminState,
+  formData: FormData
+): Promise<AdminState> {
+  await requirePermission("admin.access");
+  const enabled = formData.get("enabled") === "true";
+  await setSetting("registrationEnabled", enabled ? "true" : "false");
+  revalidatePath("/admin");
+  revalidatePath("/setup");
   return { success: true };
 }
 

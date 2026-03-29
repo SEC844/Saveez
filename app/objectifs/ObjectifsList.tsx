@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import type { Objectif, Compte } from "@prisma/client";
 import { deleteObjectifAction } from "@/app/actions/objectif";
-import { Trash2, CalendarClock, CheckCircle2, Clock, Target, Sun, Layers } from "lucide-react";
+import { Trash2, CalendarClock, CheckCircle2, Clock, Target, Sun, Layers, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -31,20 +31,27 @@ function getStatus(objectif: Objectif): "active" | "future" | "past" {
   return "active";
 }
 
-function getCategorieLabel(cat: string | null, couleurCompte?: string | null) {
-  if (cat === "vacances") {
-    if (couleurCompte) {
-      return { label: "Vacances", icon: Sun, inlineColor: couleurCompte };
-    }
-    return { label: "Vacances", icon: Sun, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" };
+type CategorieConfig = {
+  label: string;
+  icon: React.ElementType;
+  color?: string;
+  inlineColor?: string;
+};
+
+const CATEGORIE_DEFAULTS: Record<string, Omit<CategorieConfig, "inlineColor">> = {
+  vacances: { label: "Vacances", icon: Sun,    color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+  autre:    { label: "Autre",    icon: Layers, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" },
+  famille:  { label: "Famille",  icon: Users,  color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
+  standard: { label: "Standard", icon: Target, color: "text-zinc-500 bg-zinc-100 dark:bg-zinc-800" },
+};
+
+function getCategorieLabel(cat: string | null, couleurCompte?: string | null): CategorieConfig {
+  const key = cat ?? "standard";
+  const cfg = CATEGORIE_DEFAULTS[key] ?? CATEGORIE_DEFAULTS.standard;
+  if (couleurCompte && key !== "standard") {
+    return { label: cfg.label, icon: cfg.icon, inlineColor: couleurCompte };
   }
-  if (cat === "autre") {
-    if (couleurCompte) {
-      return { label: "Autre", icon: Layers, inlineColor: couleurCompte };
-    }
-    return { label: "Autre", icon: Layers, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/30" };
-  }
-  return { label: "Standard", icon: Target, color: "text-zinc-500 bg-zinc-100 dark:bg-zinc-800" };
+  return cfg;
 }
 
 function ObjectifCard({ objectif, delay, comptes }: { objectif: Objectif; delay: number; comptes?: Compte[] }) {

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import {
   Menu, LayoutDashboard, AlertTriangle, Settings, TrendingUp,
-  LogOut, History, Target, Wallet, User, Shield, Users,
+  LogOut, History, Target, Wallet, Shield, Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -21,8 +21,6 @@ const NAV = [
   { href: "/objectifs", icon: Target, label: "Objectifs" },
   { href: "/famille", icon: Users, label: "Famille" },
   { href: "/historique", icon: History, label: "Historique" },
-  { href: "/profil", icon: User, label: "Profil" },
-  { href: "/parametres", icon: Settings, label: "Paramètres" },
 ];
 
 function MiniAvatar({ name, email, avatarUrl, size = 32 }: { name?: string | null; email: string; avatarUrl?: string | null; size?: number }) {
@@ -111,14 +109,22 @@ export default function MobileNav({ canAccessAdmin, userName, userEmail = "", us
                 className="flex items-center gap-2.5 px-6 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors border-b border-zinc-100 dark:border-zinc-800"
               >
                 <MiniAvatar name={userName} email={userEmail} avatarUrl={userAvatarUrl} size={28} />
-                <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 truncate">
+                <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
                   {userName ?? userEmail}
                 </p>
               </Link>
-              <div className="px-3 py-3">
+              <div className="px-3 py-3 flex items-center gap-1">
+                <Link
+                  href="/parametres"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-1"
+                >
+                  <Settings size={15} />
+                  Paramètres
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors w-full"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   <LogOut size={15} />
                   Déconnexion

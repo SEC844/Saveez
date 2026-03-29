@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { confirm2FAAction, disable2FAAction } from "@/app/actions/two-factor";
-import { Loader2, CheckCircle, AlertCircle, ShieldCheck, ShieldOff, QrCode, Copy, Check } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, ShieldCheck, ShieldOff, QrCode, Copy, Check, Download } from "lucide-react";
 import Image from "next/image";
 
 const inputCls = "w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all tracking-widest text-center font-mono";
@@ -17,6 +17,7 @@ export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
   const [secret, setSecret] = useState<string | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [secretCopied, setSecretCopied] = useState(false);
+  const [backupCodesSaved, setBackupCodesSaved] = useState(false);
   const [isSetupPending, startSetup] = useTransition();
 
   const [confirmState, confirmAction, isConfirmPending] = useActionState(confirm2FAAction, null);
@@ -41,6 +42,26 @@ export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
       setSecretCopied(true);
       setTimeout(() => setSecretCopied(false), 2000);
     });
+  }
+
+  function handleCopyBackupCodes() {
+    if (!backupCodes) return;
+    navigator.clipboard.writeText(backupCodes.join("\n")).then(() => {
+      setBackupCodesSaved(true);
+    });
+  }
+
+  function handleDownloadBackupCodes() {
+    if (!backupCodes) return;
+    const content = `Codes de secours Saveez\nConservez ces codes en lieu sûr. Chaque code ne peut être utilisé qu'une seule fois.\n\n${backupCodes.join("\n")}\n`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "saveez-backup-codes.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    setBackupCodesSaved(true);
   }
 
   if (confirmState?.success && step === "confirm") {
@@ -149,27 +170,71 @@ export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
               </p>
 
               {backupCodes && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Codes de secours — notez-les !</p>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                      Codes de secours — à conserver impérativement !
+                    </p>
+                    {backupCodesSaved && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <Check size={11} />Sauvegardés
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-4 gap-1">
                     {backupCodes.map((c) => (
                       <code key={c} className="text-[11px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded text-center">{c}</code>
                     ))}
                   </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleCopyBackupCodes}
+                      className="inline-flex items-center gap-1.5 px-3 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                    >
+                      <Copy size={11} />Copier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadBackupCodes}
+                      className="inline-flex items-center gap-1.5 px-3 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                    >
+                      <Download size={11} />Télécharger (.txt)
+                    </button>
+                  </div>
+                  {!backupCodesSaved && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                      ⚠ Copiez ou téléchargez vos codes avant de continuer. Sans eux, vous ne pourrez pas récupérer votre compte.
+                    </p>
+                  )}
                 </div>
               )}
 
               <form action={confirmAction} className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Code de vérification (6 chiffres)</label>
-                  <input name="code" type="text" inputMode="numeric" maxLength={6} placeholder="000000" required className={inputCls} />
+                  <input
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    required
+                    disabled={!backupCodesSaved}
+                    className={`${inputCls} disabled:opacity-40 disabled:cursor-not-allowed`}
+                  />
+                  {!backupCodesSaved && (
+                    <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 text-center">
+                      Sauvegardez vos codes de secours pour débloquer cette étape.
+                    </p>
+                  )}
                 </div>
                 {confirmState?.error && (
                   <p className="flex items-center gap-1.5 text-xs text-red-500"><AlertCircle size={12} />{confirmState.error}</p>
                 )}
                 <div className="flex gap-2">
-                  <button type="submit" disabled={isConfirmPending}
-                    className="inline-flex items-center gap-2 px-4 h-9 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium disabled:opacity-50">
+                  <button type="submit" disabled={isConfirmPending || !backupCodesSaved}
+                    className="inline-flex items-center gap-2 px-4 h-9 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                     {isConfirmPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                     Confirmer
                   </button>

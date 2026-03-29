@@ -1,9 +1,11 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { requirePermission } from "@/lib/authz";
 import { prisma } from "@/lib/db";
+import { isRegistrationEnabled } from "@/lib/app-settings";
 import AdminPanel from "./AdminPanel";
 import SecurityPanel from "./SecurityPanel";
 import AdminTabs from "./AdminTabs";
+import AdminSettingsPanel from "./AdminSettingsPanel";
 import { Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +19,7 @@ export default async function AdminPage() {
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const since15min = new Date(Date.now() - LOCKOUT_WINDOW_MS);
 
-  const [users, roles, recentAttempts, failGroups, statsToday] =
+  const [users, roles, recentAttempts, failGroups, statsToday, regEnabled] =
     await Promise.all([
       prisma.user.findMany({
         include: { role: { select: { id: true, name: true } } },
@@ -44,6 +46,7 @@ export default async function AdminPage() {
         where: { createdAt: { gte: since24h } },
         _count: { _all: true },
       }),
+      isRegistrationEnabled(),
     ]);
 
   // Stats succès / échec
@@ -98,6 +101,9 @@ export default async function AdminPage() {
                 failed: failedToday,
               }}
             />
+          }
+          settingsTab={
+            <AdminSettingsPanel registrationEnabled={regEnabled} />
           }
         />
       </div>

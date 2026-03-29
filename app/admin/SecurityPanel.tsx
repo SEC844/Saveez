@@ -21,6 +21,7 @@ export type LoginAttemptDTO = {
   success: boolean;
   userAgent: string | null;
   createdAt: Date;
+  with2FA: boolean;
 };
 
 export type LockoutStatusDTO = {
@@ -244,9 +245,17 @@ export default function SecurityPanel({
                   >
                     <td className="px-4 py-2.5">
                       {attempt.success ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 size={12} />
-                          <span className="hidden sm:inline">Succès</span>
+                        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 flex-wrap">
+                          <span className="inline-flex items-center gap-1">
+                            <CheckCircle2 size={12} />
+                            <span className="hidden sm:inline">Succès</span>
+                          </span>
+                          {attempt.with2FA && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium">
+                              <ShieldCheck size={9} />
+                              2FA
+                            </span>
+                          )}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-red-500">

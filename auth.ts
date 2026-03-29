@@ -14,11 +14,12 @@ async function logAttempt(
   email: string,
   ip: string,
   success: boolean,
-  userAgent?: string | null
+  userAgent?: string | null,
+  with2FA = false
 ) {
   try {
     await prisma.loginAttempt.create({
-      data: { email, ip, success, userAgent: userAgent ?? undefined },
+      data: { email, ip, success, userAgent: userAgent ?? undefined, with2FA },
     });
   } catch {
     // Ne pas bloquer l'auth si le logging échoue
@@ -62,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           if (!user) return null;
 
-          await logAttempt(user.email, ip, isValid, userAgent);
+          await logAttempt(user.email, ip, isValid, userAgent, true);
           if (!isValid) return null;
 
           return {
