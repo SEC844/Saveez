@@ -30,5 +30,5 @@ export async function POST() {
     update: { secret, enabled: false, backupCodes },
   });
 
-  return NextResponse.json({ qrCodeDataUrl, backupCodes });
+  return NextResponse.json({ qrCodeDataUrl, backupCodes, secret });
 }

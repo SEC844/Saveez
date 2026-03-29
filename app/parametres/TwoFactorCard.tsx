@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { confirm2FAAction, disable2FAAction } from "@/app/actions/two-factor";
-import { Loader2, CheckCircle, AlertCircle, ShieldCheck, ShieldOff, QrCode } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, ShieldCheck, ShieldOff, QrCode, Copy, Check } from "lucide-react";
 import Image from "next/image";
 
 const inputCls = "w-full h-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all tracking-widest text-center font-mono";
@@ -14,7 +14,9 @@ interface TwoFactorCardProps {
 export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
   const [step, setStep] = useState<"idle" | "setup" | "confirm" | "disable">("idle");
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [secretCopied, setSecretCopied] = useState(false);
   const [isSetupPending, startSetup] = useTransition();
 
   const [confirmState, confirmAction, isConfirmPending] = useActionState(confirm2FAAction, null);
@@ -26,9 +28,18 @@ export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
       const data = await res.json();
       if (data.qrCodeDataUrl) {
         setQrUrl(data.qrCodeDataUrl);
+        setSecret(data.secret ?? null);
         setBackupCodes(data.backupCodes ?? null);
         setStep("confirm");
       }
+    });
+  }
+
+  function handleCopySecret() {
+    if (!secret) return;
+    navigator.clipboard.writeText(secret).then(() => {
+      setSecretCopied(true);
+      setTimeout(() => setSecretCopied(false), 2000);
     });
   }
 
@@ -107,11 +118,33 @@ export default function TwoFactorCard({ has2FA }: TwoFactorCardProps) {
 
           {step === "confirm" && qrUrl && (
             <div className="space-y-4">
-              <div className="p-3 bg-white rounded-xl border border-zinc-200 dark:border-zinc-700 inline-block">
-                <Image src={qrUrl} alt="QR code 2FA" width={160} height={160} unoptimized />
+              <div className="flex flex-wrap gap-4 items-start">
+                <div className="p-3 bg-white rounded-xl border border-zinc-200 dark:border-zinc-700 inline-block">
+                  <Image src={qrUrl} alt="QR code 2FA" width={160} height={160} unoptimized />
+                </div>
+                {secret && (
+                  <div className="flex-1 min-w-[180px] space-y-1.5">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      Ou saisissez ce code manuellement
+                    </p>
+                    <div className="flex items-center gap-2 p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl">
+                      <code className="flex-1 text-xs font-mono text-zinc-800 dark:text-zinc-200 break-all tracking-widest">
+                        {secret}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={handleCopySecret}
+                        className="shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        title="Copier le secret"
+                      >
+                        {secretCopied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Scannez ce QR code avec <strong>Google Authenticator</strong> ou <strong>Authy</strong>,
+                Scannez le QR code avec <strong>Google Authenticator</strong> ou <strong>Authy</strong>,
                 puis saisissez le code généré.
               </p>
 

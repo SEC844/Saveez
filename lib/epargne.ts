@@ -74,6 +74,9 @@ export function getRemboursementActif(
 /**
  * Décompose l'objectif mensuel par catégorie pour un mois/année donnés.
  * Utile pour les graphiques en couleur par catégorie.
+ *
+ * Les catégories "vacances", "autre" et "famille" sont additives entre elles
+ * et s'ajoutent au montant standard.
  */
 export function getObjectifBreakdownForMonth(
   objectifBase: number,
@@ -85,6 +88,7 @@ export function getObjectifBreakdownForMonth(
   standard: number;
   vacances: number;
   autre: number;
+  famille: number;
   remboursements: number;
   total: number;
 } {
@@ -97,13 +101,17 @@ export function getObjectifBreakdownForMonth(
   const autre = speciaux
     .filter((o) => o.categorie === "autre")
     .reduce((s, o) => s + o.montant, 0);
+  const famille = speciaux
+    .filter((o) => o.categorie === "famille")
+    .reduce((s, o) => s + o.montant, 0);
   const remboursements = getRemboursementActif(imprévus, annee, mois);
   return {
     standard,
     vacances,
     autre,
+    famille,
     remboursements,
-    total: standard + vacances + autre + remboursements,
+    total: standard + vacances + autre + famille + remboursements,
   };
 }
 

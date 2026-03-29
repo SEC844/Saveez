@@ -116,7 +116,15 @@ export default async function DashboardPage() {
         <StatCard
           label="Objectif du mois"
           value={`${objectifDuMois.toLocaleString("fr-FR")} €`}
-          subValue={imprévusActifs.length > 0 ? `dont ${breakdown.remboursements.toLocaleString("fr-FR")} € remb.` : undefined}
+          subValue={
+            imprévusActifs.length > 0 && breakdown.famille > 0
+              ? `dont ${breakdown.remboursements.toLocaleString("fr-FR")} € remb. + ${breakdown.famille.toLocaleString("fr-FR")} € famille`
+              : imprévusActifs.length > 0
+              ? `dont ${breakdown.remboursements.toLocaleString("fr-FR")} € remb.`
+              : breakdown.famille > 0
+              ? `dont ${breakdown.famille.toLocaleString("fr-FR")} € famille`
+              : undefined
+          }
           icon={Target}
           delay={0.05}
         />

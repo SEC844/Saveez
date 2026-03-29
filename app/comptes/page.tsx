@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import ComptesClient from "./ComptesClient";
+import ComptesClient, { type CompteWithUser } from "./ComptesClient";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,7 @@ export default async function ComptesPage() {
   const soldeComptesInactifs = comptesPerso.filter((c) => !c.actif).reduce((s, c) => s + c.solde, 0);
   const epargneStandard = user.epargneActuelle;
 
-  const allComptesActifs = [
+  const allComptesActifs: CompteWithUser[] = [
     ...comptesPerso.filter((c) => c.actif),
     ...comptesFamille.filter((c) => c.actif),
   ];
@@ -54,13 +54,13 @@ export default async function ComptesPage() {
     <DashboardShell>
       <ComptesClient
         comptes={comptesPerso}
-        comptesFamille={comptesFamille as any}
+        comptesFamille={comptesFamille}
         epargneStandard={epargneStandard}
         soldeComptesInactifs={soldeComptesInactifs}
         familleId={familleId}
         familleName={membre?.famille.name ?? null}
         currentUserId={userId}
-        allComptesActifs={allComptesActifs as any}
+        allComptesActifs={allComptesActifs}
       />
     </DashboardShell>
   );

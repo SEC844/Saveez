@@ -125,6 +125,7 @@ export async function getGraphData(
       objectifStandard: breakdown.standard,
       objectifVacances: breakdown.vacances,
       objectifAutre: breakdown.autre,
+      objectifFamille: breakdown.famille,
       remboursements: breakdown.remboursements,
       standardAllocation, // portion réelle allouée au compte principal (null si pas d'entrée)
       compteAllocations,  // { [compteId]: montant }

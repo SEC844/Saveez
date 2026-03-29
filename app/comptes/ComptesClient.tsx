@@ -15,7 +15,7 @@ import { toggleCompteAction, deleteCompteAction } from "@/app/actions/compte";
 import MainCompteActionModal from "@/components/dashboard/MainCompteActionModal";
 import type { Compte } from "@prisma/client";
 
-type CompteWithUser = Compte & { user?: { name: string | null; email: string } };
+export type CompteWithUser = Compte & { user?: { name: string | null; email: string } };
 
 type Props = {
   comptes: Compte[];
@@ -25,7 +25,7 @@ type Props = {
   familleId: string | null;
   familleName: string | null;
   currentUserId: string;
-  allComptesActifs: Compte[]; // pour le sélecteur de destination du compte principal
+  allComptesActifs: CompteWithUser[];
 };
 
 const ICONS = { vacances: Plane, autre: Star, famille: Users };
@@ -111,7 +111,7 @@ function NewCompteDropdown({ familleId }: { familleId: string | null }) {
 
 // ─── Menu 3 points d'un compte ────────────────────────────────────────────────
 
-function CompteMenu({ compte, currentUserId }: { compte: Compte; currentUserId: string }) {
+function CompteMenu({ compte, currentUserId }: { compte: CompteWithUser; currentUserId: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [toggling, startToggle] = useTransition();
@@ -190,8 +190,8 @@ function CompteMenu({ compte, currentUserId }: { compte: Compte; currentUserId: 
 // ─── Carte de compte ──────────────────────────────────────────────────────────
 
 function CompteCard({ compte, autresComptes, total, index, currentUserId }: {
-  compte: Compte;
-  autresComptes: Compte[];
+  compte: CompteWithUser;
+  autresComptes: CompteWithUser[];
   total: number;
   index: number;
   currentUserId: string;

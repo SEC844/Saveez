@@ -15,9 +15,9 @@ interface CompteActionModalProps {
 
 export default function CompteActionModal({ compte, autresComptes, trigger }: CompteActionModalProps) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"retrait" | "transfert">("retrait");
+  const [mode, setMode] = useState<"depense" | "transfert">("depense");
 
-  const [stateRetrait, actionRetrait, isPendingRetrait] = useActionState(retraitCompteAction, null);
+  const [stateDepense, actionDepense, isPendingDepense] = useActionState(retraitCompteAction, null);
   const [stateTransfert, actionTransfert, isPendingTransfert] = useActionState(transfertCompteAction, null);
 
   const [montant, setMontant] = useState("");
@@ -26,20 +26,20 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
   const [proposeDelete, setProposeDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
-  const state = mode === "retrait" ? stateRetrait : stateTransfert;
-  const isPending = isPendingRetrait || isPendingTransfert;
+  const state = mode === "depense" ? stateDepense : stateTransfert;
+  const isPending = isPendingDepense || isPendingTransfert;
 
   function resetForm() {
     setMontant("");
     setNote("");
-    setMode("retrait");
+    setMode("depense");
     setProposeDelete(false);
   }
 
   useEffect(() => {
     if (state?.success) {
       const montantNum = parseFloat(montant);
-      // Si l'utilisateur a retiré/transféré la totalité du solde, proposer la suppression
+      // Si l'utilisateur a dépensé/transféré la totalité du solde, proposer la suppression
       if (!isNaN(montantNum) && Math.abs(montantNum - compte.solde) < 0.01) {
         setProposeDelete(true);
         return; // ne pas fermer automatiquement
@@ -75,14 +75,14 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
         <div className="flex gap-2 mt-2">
           <button
             type="button"
-            onClick={() => setMode("retrait")}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${mode === "retrait"
+            onClick={() => setMode("depense")}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${mode === "depense"
                 ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white"
                 : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300"
               }`}
           >
             <ArrowDownLeft size={16} />
-            Retrait
+            Dépense
           </button>
           <button
             type="button"
@@ -93,13 +93,13 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
               }`}
           >
             <ArrowRightLeft size={16} />
-            Transfert
+            Transférer
           </button>
         </div>
 
         {/* Formulaire */}
         <form
-          action={mode === "retrait" ? actionRetrait : actionTransfert}
+          action={mode === "depense" ? actionDepense : actionTransfert}
           className="space-y-4 mt-4"
         >
           <input type="hidden" name="compteId" value={compte.id} />
@@ -180,7 +180,7 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
             >
               <CheckCircle size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
               <p className="text-xs text-green-600 dark:text-green-400">
-                {mode === "retrait" ? "Retrait effectué !" : "Transfert effectué !"}
+                {mode === "depense" ? "Dépense enregistrée !" : "Transfert effectué !"}
               </p>
             </motion.div>
           )}
@@ -227,10 +227,10 @@ export default function CompteActionModal({ compte, autresComptes, trigger }: Co
               {isPending ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  En cours...
+                  En cours…
                 </>
-              ) : mode === "retrait" ? (
-                "Effectuer le retrait"
+              ) : mode === "depense" ? (
+                "Enregistrer la dépense"
               ) : (
                 "Effectuer le transfert"
               )}
